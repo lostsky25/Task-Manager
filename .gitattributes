@@ -1,1 +1,1 @@
-*.asm linguist-language=MASM
+*.asm linguist-detectable=true
