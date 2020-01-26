@@ -27,6 +27,11 @@ LBS_WANTKEYBOARDINPUT equ 0400h
 LBS_STANDARD        equ (LBS_NOTIFY or LBS_SORT or WS_VSCROLL or WS_BORDER)
 ;!Constants
 
+ICC_TAB_CLASSES     equ   00000008h ;tab, tooltips
+TCIF_TEXT           equ	  0001h ;text
+TCM_FIRST			equ   1300h
+TCM_GETITEMCOUNT    equ   (TCM_FIRST + 4)
+TCM_INSERTITEMW     equ   (TCM_FIRST + 62)
 ;Window propertirs
 CS_VREDRAW			equ 1h
 CS_HREDRAW			equ 2h
@@ -54,6 +59,8 @@ SW_SHOWNORMAL		equ 1
 ;Prototypes of external procedures
 EXTERN MessageBoxA@16:NEAR
 EXTERN CreateWindowExA@48:NEAR
+EXTERN CreateWindowExW@48:NEAR
+; EXTERN CreateWindowW@48:NEAR
 EXTERN DefWindowProcA@16:NEAR
 EXTERN DispatchMessageA@4:NEAR
 EXTERN ExitProcess@4:NEAR
@@ -69,4 +76,31 @@ EXTERN UpdateWindow@4:NEAR
 EXTERN CreateToolhelp32Snapshot@8:NEAR
 EXTERN Process32FirstW@8:NEAR
 EXTERN SendMessageW@16:NEAR
+EXTERN InitCommonControlsEx@4:NEAR
+EXTERN SendMessageW@16:NEAR
 ;!Prototypes of external procedures
+
+;  DWORD     dwExStyle,
+;   LPCSTR    lpClassName,
+;   LPCSTR    lpWindowName,
+;   DWORD     dwStyle,
+;   int       X,
+;   int       Y,
+;   int       nWidth,
+;   int       nHeight,
+;   HWND      hWndParent,
+;   HMENU     hMenu,
+;   HINSTANCE hInstance,
+;   LPVOID    lpParam
+
+;  LPCTSTR lpClassName,
+; LPCTSTR  lpWindowName,
+;  DWORD  dwStyle,
+;  int  x,
+;  int  y,
+;  int  nWidth,
+;  int nHeight,
+;  HWND hWndParent,
+;  HMENU  hMenu,
+;  HINSTANCE hInstance,
+;   LPVOID lpParam

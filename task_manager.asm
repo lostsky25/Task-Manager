@@ -8,6 +8,14 @@ include process_list_res.inc
 includelib C:\masm32\lib\user32.lib
 includelib C:\masm32\lib\kernel32.lib
 
+include \masm32\include\gdi32.inc
+include \masm32\include\user32.inc
+include \masm32\include\comctl32.inc
+
+includelib \masm32\lib\gdi32.lib
+includelib \masm32\lib\comctl32.lib
+includelib \masm32\lib\masm32.lib
+
 ;Message structure
 MSGSTRUCT STRUC
 	MSHWND		DD	?	;Window id
@@ -34,11 +42,26 @@ WNDCLASS STRUC
 WNDCLASS ENDS
 ;!Window structure
 
+TCC_ITEM STRUC
+	_mask DD ?
+    dwState DD ?
+    dwStateMask DD ?
+    pszText DD ?
+    cchTextMax DD ?
+    iImage DD ?
+TCC_ITEM ENDS
+
+INITCOMMONCONTROL STRUC
+	wSize DD ?
+    dwICC DD ? 
+    dwSize DD ?
+INITCOMMONCONTROL ENDS
 
 ;Data segment
 _data segment dword public use32 'data'
 	NEWHWND		dd			0
-	LISTBOXPROCESSES	 DWORD 	0
+	LISTBOXPROCESSES	 dd 	0
+	TAB	 dd 	0
 	MSG			MSGSTRUCT 	<?>
 	WC			WNDCLASS	<?>
 	HINST		dd			0	;Application HINST
@@ -46,8 +69,12 @@ _data segment dword public use32 'data'
 	TITLELISTBOX db			'ListBox',0
 	CLASSNAME	db			'CLASS32',0
 	CAP		    db			'Message',0
+	FIRSTTABNAME	    db			'Processes',0
+	WC_TABCONTROLW		    db			'SysTabControl32',0
 	ERROR_SNAP	db			'Errot get snapshot',0
-	PROCDATA 	PROCESSENTRY32W <?>
+	PROCDATA 	PROCESSENTRY32W <>
+	tie     TCC_ITEM <> 
+	icex    INITCOMMONCONTROL <>
 	PROCH		dd ?
 _data ends
 ;!Data segment
@@ -201,22 +228,64 @@ WNDPROC PROC
 	jmp DEFWNDPROC
 
 WMCREATE:
-	;Create list box (with processes)
+	
+	mov icex.dwSize, sizeof INITCOMMONCONTROL
+	mov icex.dwICC, ICC_TAB_CLASSES
+	
+	push OFFSET [icex]
+	call InitCommonControlsEx@4
+
 	push 0
 	push 0
 	push 0
-	push DWORD PTR [ebp + 08H]
-	push 50		;Window height
-	push 50		;Window width
+	push DWORD PTR [ebp + 08]
+	push 60		;Window height
+	push 60		;Window width
 	push 10		;Left upper coordinate
 	push 10		;Right upper coordinate
-	push WS_CHILD or WS_VISIBLE or LBS_STANDARD or LBS_WANTKEYBOARDINPUT
-	push OFFSET CAP				 ;Class name
-	push OFFSET TITLELISTBOX ;Window name
-	push WS_EX_CLIENTEDGE
-	call CreateWindowExA@48
+	push WS_CHILD or WS_VISIBLE
+	push 0
+	push OFFSET WC_TABCONTROLW
+	push 0
+	call CreateWindowExW@48
 
-	mov LISTBOXPROCESSES, eax
+	mov TAB, eax
+
+	mov tie._mask, TCIF_TEXT
+	mov tie.pszText, OFFSET FIRSTTABNAME
+
+	push 0
+	push 0
+	push TCM_GETITEMCOUNT
+	push [TAB]
+
+	call SendMessageW@16
+
+	push OFFSET tie
+	push 1
+	push TCM_INSERTITEMW
+	push [TAB]
+
+	call SendMessageW@16
+
+
+	;Create list box (with processes)
+	; push 0
+	; push 0
+	; push 0
+	; push DWORD PTR [ebp + 08]
+	; push 50		;Window height
+	; push 50		;Window width
+	; push 10		;Left upper coordinate
+	; push 10		;Right upper coordinate
+	; push WS_CHILD or WS_VISIBLE or LBS_STANDARD or LBS_WANTKEYBOARDINPUT
+	; push 0					 ;Class name
+	; push OFFSET TITLELISTBOX ;Window name
+	; push WS_EX_CLIENTEDGE
+	; call CreateWindowExA@48
+
+	; mov LISTBOXPROCESSES, eax
+
 
 	push SW_SHOWNORMAL
 	push [LISTBOXPROCESSES]
