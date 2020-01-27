@@ -259,6 +259,8 @@ WNDPROC proc
 	je WMDESTROY
 	cmp DWORD PTR [ebp + 0CH], WM_CREATE
 	je WMCREATE
+	cmp DWORD PTR [ebp + 0CH], WM_NOTIFY
+	je WMNOTIFY
 
 	jmp DEFWNDPROC
 
@@ -272,7 +274,7 @@ WMCREATE:
 
 	push 0
 	push 0
-	push 0
+	push ID_TABCTRL
 	push DWORD PTR [ebp + 08H]
 	push 400					;Window height
 	push 600					;Window width
@@ -397,11 +399,41 @@ WMCREATE:
 
 	mov eax, 0
 	jmp FINISH
+
+WMNOTIFY:
+	cmp DWORD PTR [ebp + 10H], ID_TABCTRL
+	je IDTABCTRL
+	
+IDTABCTRL:
+	push 0
+	push 0
+	push TCM_GETCURFOCUS
+	push [TAB]
+	call SendMessageW@16
+
+	.if eax == 0
+		push 1
+		push 300
+		push 570
+		push 30
+		push 5
+		push LISTBOXPROCESSES
+		call MoveWindow@24
+	.elseif eax == 1
+		push 1
+		push 300
+		push 570
+		push 30
+		push -650
+		push LISTBOXPROCESSES
+		call MoveWindow@24
+	.endif
+
 DEFWNDPROC:
-	push DWORD PTR [EBP + 14H]
-	push DWORD PTR [EBP + 10H]
-	push DWORD PTR [EBP + 0CH]
-	push DWORD PTR [EBP + 08H]
+	push DWORD PTR [ebp + 14H]
+	push DWORD PTR [ebp + 10H]
+	push DWORD PTR [ebp + 0CH]
+	push DWORD PTR [ebp + 08H]
 	call DefWindowProcA@16
 	JMP FINISH
 WMDESTROY:

@@ -1,10 +1,13 @@
 ;Constants
 
+WM_NOTIFY			equ 78
+
 ;Closing a window
 WM_DESTROY			equ 2
 
 ;Create a window
 WM_CREATE			equ 1
+
 
 ;Error icon
 MB_ICONERROR		equ 00000010h
@@ -21,8 +24,8 @@ ID_LIST_MODUL 		equ 00000021h
 ID_BTN_KILL_PROC 	equ 00000022h
 ; ID_BTN_PAUSE_PROC 	equ 00000013h
 ; ID_BTN_RESUME_PROC 	equ 00000014h
-IDC_TAB 			equ 00000015h
-; ID_TABCTRL 			equ 00000016h
+; IDC_TAB 			equ 00000015h
+ID_TABCTRL 			equ 00000023h
 
 ; FIRST_PAGE			equ 00000001h
 ; #define SECOND_PAGE equ 00000002h
@@ -46,6 +49,7 @@ LBS_STANDARD        equ (LBS_NOTIFY or LBS_SORT or WS_VSCROLL or WS_BORDER)
 ICC_TAB_CLASSES     equ   00000008h ;tab, tooltips
 TCIF_TEXT           equ	  0001h ;text
 TCM_FIRST			equ   1300h
+TCM_GETCURFOCUS 	equ   (TCM_FIRST + 47)
 TCM_GETITEMCOUNT    equ   (TCM_FIRST + 4)
 TCM_INSERTITEMW     equ   (TCM_FIRST + 62)
 ;Window propertirs
@@ -96,6 +100,8 @@ EXTERN InitCommonControlsEx@4:NEAR
 EXTERN SendMessageW@16:NEAR
 EXTERN Process32NextW@8:NEAR
 EXTERN CloseHandle@4:NEAR
+EXTERN MoveWindow@24:NEAR
+EXTERN UpdateWindow@4:NEAR
 ;!Prototypes of external procedures
 
 ;  DWORD     dwExStyle,
