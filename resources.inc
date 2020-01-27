@@ -11,6 +11,22 @@ MB_ICONERROR		equ 00000010h
 
 MAX_PATH			equ 260
 
+BS_PUSHBUTTON       equ 00000000h
+LB_RESETCONTENT     equ 0184h
+LB_ADDSTRING        equ	0180h
+
+;IDS
+ID_LIST_PROC		equ 00000020h
+ID_LIST_MODUL 		equ 00000021h
+ID_BTN_KILL_PROC 	equ 00000022h
+; ID_BTN_PAUSE_PROC 	equ 00000013h
+; ID_BTN_RESUME_PROC 	equ 00000014h
+IDC_TAB 			equ 00000015h
+; ID_TABCTRL 			equ 00000016h
+
+; FIRST_PAGE			equ 00000001h
+; #define SECOND_PAGE equ 00000002h
+
 ;Click event (left mouse button)
 ;WM_LBUTTONDOWN 		equ 201h
 
@@ -44,7 +60,7 @@ STYLE_WINDOW 		equ CS_HREDRAW+CS_VREDRAW+CS_GLOBALCLASS
 IDI_APPLICATION		equ 32512
 
 ;List box (with processes)
-ID_LIST_MODUL		equ 000000091h
+; ID_LIST_MODUL		equ 000000091h
 
 WS_EX_CLIENTEDGE	equ 00000200h
 
@@ -78,6 +94,8 @@ EXTERN Process32FirstW@8:NEAR
 EXTERN SendMessageW@16:NEAR
 EXTERN InitCommonControlsEx@4:NEAR
 EXTERN SendMessageW@16:NEAR
+EXTERN Process32NextW@8:NEAR
+EXTERN CloseHandle@4:NEAR
 ;!Prototypes of external procedures
 
 ;  DWORD     dwExStyle,
