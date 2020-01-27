@@ -52,7 +52,6 @@ TCC_ITEM STRUC
 TCC_ITEM ENDS
 
 INITCOMMONCONTROL STRUC
-	wSize DD ?
     dwICC DD ? 
     dwSize DD ?
 INITCOMMONCONTROL ENDS
@@ -69,7 +68,7 @@ _data segment dword public use32 'data'
 	TITLELISTBOX db			'ListBox',0
 	CLASSNAME	db			'CLASS32',0
 	CAP		    db			'Message',0
-	FIRSTTABNAME	    db			'Processes',0
+	FIRSTTABNAME	    dd			'Proc',0
 	WC_TABCONTROLW		    db			'SysTabControl32',0
 	ERROR_SNAP	db			'Errot get snapshot',0
 	PROCDATA 	PROCESSENTRY32W <>
@@ -232,25 +231,35 @@ WMCREATE:
 	mov icex.dwSize, sizeof INITCOMMONCONTROL
 	mov icex.dwICC, ICC_TAB_CLASSES
 	
-	push OFFSET [icex]
+	push OFFSET [ICEX]
 	call InitCommonControlsEx@4
+
+	; .if eax == 1
+	; 	PUSH MB_ICONERROR
+	; 	PUSH OFFSET CAP
+	; 	PUSH OFFSET ERROR_SNAP
+	; 	PUSH DWORD PTR [ebp + 08H] ;ДЕСКРИПТОР ОКНА
+	; 	CALL MessageBoxA@16
+	; .endif
 
 	push 0
 	push 0
 	push 0
-	push DWORD PTR [ebp + 08]
-	push 60		;Window height
-	push 60		;Window width
+	push DWORD PTR [ebp + 08H]
+	push 600		;Window height
+	push 600		;Window width
 	push 10		;Left upper coordinate
 	push 10		;Right upper coordinate
 	push WS_CHILD or WS_VISIBLE
 	push 0
 	push OFFSET WC_TABCONTROLW
-	push 0
-	call CreateWindowExW@48
+	push WS_EX_CLIENTEDGE
+	call CreateWindowExA@48
 
 	mov TAB, eax
 
+
+	;First tab
 	mov tie._mask, TCIF_TEXT
 	mov tie.pszText, OFFSET FIRSTTABNAME
 
@@ -269,6 +278,23 @@ WMCREATE:
 	call SendMessageW@16
 
 
+	;Second tab
+	mov tie._mask, TCIF_TEXT
+	mov tie.pszText, OFFSET FIRSTTABNAME
+
+	push 0
+	push 0
+	push TCM_GETITEMCOUNT
+	push [TAB]
+
+	call SendMessageW@16
+
+	push OFFSET tie
+	push 2
+	push TCM_INSERTITEMW
+	push [TAB]
+
+	call SendMessageW@16
 	;Create list box (with processes)
 	; push 0
 	; push 0
