@@ -1,8 +1,7 @@
-.386P
-.MODEL FLAT, stdcall
+.386p
+.model flat, stdcall
 
-include resources.inc
-include process_list_res.inc
+
 
 ;Library Linker Directives
 includelib C:\masm32\lib\user32.lib
@@ -14,48 +13,52 @@ includelib \masm32\lib\masm32.lib
 include \masm32\include\gdi32.inc
 include \masm32\include\user32.inc
 include \masm32\include\comctl32.inc
+include \masm32\include\kernel32.inc
+
+include resources.inc
 
 ;Message structure
 MSGSTRUCT struct
-	MSHWND		dd	?			;Window id
-	MSMESSAGE	dd 	?			;Message id
-	MSWPARAM	dd	?			;Additional message information
-	MSLPARAM	dd	?			;Additional message information
-	MSTIME		dd	?			;Post time
-	MSPT		dd	?			;Cursor position
+	MSHWND				dd	?			;Window id
+	MSMESSAGE			dd 	?			;Message id
+	MSWPARAM			dd	?			;Additional message information
+	MSLPARAM			dd	?			;Additional message information
+	MSTIME				dd	?			;Post time
+	MSPT				dd	?			;Cursor position
 MSGSTRUCT ends
 ;!Message structure
 
 ;Window structure
 WNDCLASS struct
-	CLSSTYLE	dd	?			;Window style
-	CLWNDPROC	dd	?			;Window procedure pointer
-	CLSCEXTRA	dd	? 			;Additional byte information for this structure
-	CLWNDEXTRA	dd	? 			;Additional byte information for window
-	CLSHISTANCE	dd	?			;Window HINST
-	CLSHICON	dd	?			;Icon id
-	CLSHCURSOR	dd	?			;Cursor id
-	CLBKGROUND	dd	?			;Brush id
-	CLMENUNAME	dd	?			;Name id
-	CLNAME		dd	?			;Specifies a window class name
+	CLSSTYLE			dd	?			;Window style
+	CLWNDPROC			dd	?			;Window procedure pointer
+	CLSCEXTRA			dd	? 			;Additional byte information for this structure
+	CLWNDEXTRA			dd	? 			;Additional byte information for window
+	CLSHISTANCE			dd	?			;Window HINST
+	CLSHICON			dd	?			;Icon id
+	CLSHCURSOR			dd	?			;Cursor id
+	CLBKGROUND			dd	?			;Brush id
+	CLMENUNAME			dd	?			;Name id
+	CLNAME				dd	?			;Specifies a window class name
 WNDCLASS ends
 ;!Window structure
 
 ;Tabs structure
 TCC_ITEM struct
-	_mask 		dd 	?
-    dwState 	dd 	?
-    dwStateMask dd 	?
-    pszText 	dd 	?
-    cchTextMax 	dd 	?
-    iImage 		dd 	?
+	_mask 				dd 	?
+    dwState 			dd 	?
+    dwStateMask 		dd 	?
+    pszText 			dd 	?
+    cchTextMax 			dd 	?
+    iImage 				dd 	?
 TCC_ITEM ends
 ;!Tabs structure
 
 INITCOMMONCONTROL struct
-    dwICC 		dd 	? 
-    dwSize 		dd 	?
+    dwICC 				dd 	? 
+    dwSize 				dd 	?
 INITCOMMONCONTROL ends
+
 
 ;Data segment
 _data segment dword public use32 'data'
@@ -65,23 +68,28 @@ _data segment dword public use32 'data'
 	LISTBOXMODULES	 	dd 		0
 	BTNKILLPROC			dd 		0
 	TAB	 				dd 		0
-	DWTEMP				dw 		0
+	DWTEMP				dd 		0
 	HINST				dd		0
 	hSnapshot			dd 		?
-	BUF2 				db		'%s',0
-	TITLENAME			db		'Task Manager',0
-	WC_BUTTONW			db		'Button',0
-	TITLELISTBOX		db		'ListBox',0
-	CLASSNAME			db		'CLASS32',0
-	CAP		    		db		'Message',0
-	FIRSTTABNAME	    dd		'1',0
-	SECONDTABNAME	    dd		'2',0
-	BTNKILLPROCNAME	    dd		'K',0
-	WC_TABCONTROLW		db		'SysTabControl32',0
-	ERROR_SNAP			db		'Errot get snapshot',0
+	mSnapshot			dd 		?
+	procTemplateBuf 	db		"%s %d", 0
+	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %s", 0
+	procBuf 			db		1024 dup(?)
+	modulBuf 			db		1024 dup(?)
+	TITLENAME			db		'Task Manager', 0
+	WC_BUTTONW			db		'Button', 0
+	TITLELISTBOX		db		'ListBox', 0
+	CLASSNAME			db		'CLASS32', 0
+	CAP		    		db		'Message', 0
+	FIRSTTABNAME	    dd		'1', 0
+	SECONDTABNAME	    dd		'2', 0
+	BTNKILLPROCNAME	    dd		"lliK",0
+	WC_TABCONTROLW		db		'SysTabControl32', 0
+	ERROR_SNAP			db		'Errot get snapshot', 0
 	MSG					MSGSTRUCT 		  <?>
 	WC					WNDCLASS		  <?>
-	PROCDATA 			PROCESSENTRY32W   <>
+	PROCDATA 			PROCESSENTRY32    <>
+	MODULDATA			MODULEENTRY32	  <>
 	tie     			TCC_ITEM 		  <> 
 	icex    			INITCOMMONCONTROL <>
 _data ends
@@ -176,7 +184,14 @@ _ERR:
 	jmp END_LOOP
 
 
-GETPROCESSLIST proc
+
+updateAllLists proc
+
+	push 0
+	push 0
+	push LB_RESETCONTENT
+	push [LISTBOXPROCESSES]
+	call SendMessageA@16
 
 	push 0
 	push TH32CS_SNAPPROCESS
@@ -192,55 +207,98 @@ GETPROCESSLIST proc
 		CALL MessageBoxA@16
 	.endif
 
-	mov PROCDATA.dwSize, sizeof PROCESSENTRY32W
+	mov PROCDATA.dwSize, sizeof PROCESSENTRY32
 
 	push offset PROCDATA
 	push hSnapshot
 	call Process32FirstW@8
 
-	; push 0
-	; push 0
-	; push LB_RESETCONTENT
-	; push [LISTBOXPROCESSES]
+	; invoke Process32First, hSnapshot, offset PROCDATA
 
-	; call SendMessageW@16
+	push PROCDATA.th32ProcessID
+	push TH32CS_SNAPMODULE
+	call CreateToolhelp32Snapshot@8
 
-	; push OFFSET PROCDATA
-	; push hSnapshot
-	; call Process32NextW@8
+	mov mSnapshot, eax
+
+	.if mSnapshot == -1
+		PUSH MB_ICONERROR
+		PUSH OFFSET CAP
+		PUSH OFFSET ERROR_SNAP
+		PUSH DWORD PTR [ebp + 08H]
+		CALL MessageBoxA@16
+	.endif
 
 	.while eax != 0
+		; .if PROCDATA.th32ProcessID != 0
+		
+		; .endif
+		;??????????????
+		push PROCDATA.th32ProcessID
+		push TH32CS_SNAPMODULE
+		call CreateToolhelp32Snapshot@8
 
-		push OFFSET PROCDATA.szExeFile
+		mov mSnapshot, eax
+
+		invoke wsprintf, offset procBuf, offset procTemplateBuf, offset PROCDATA.szExeFile, PROCDATA.th32ProcessID
+
+		push offset PROCDATA.szExeFile
 		push 0
 		push LB_ADDSTRING
 		push [LISTBOXPROCESSES]
-		
-		invoke wsprintf, OFFSET BUF2, OFFSET PROCDATA.szExeFile
 
-		call SendMessageW@16
+		; PUSH MB_ICONERROR
+		; PUSH OFFSET procBuf
+		; PUSH OFFSET procBuf
+		; PUSH DWORD PTR [ebp + 08H]
+		; CALL MessageBoxA@16
 
-		push OFFSET PROCDATA
+			; invoke wsprintf, OFFSET procBuf, OFFSET PROCDATA.szExeFile
+
+			call SendMessageA@16
+
+;Modul begin
+			mov MODULDATA.dwSize, sizeof MODULEENTRY32
+
+			push offset MODULDATA
+			push mSnapshot
+			call Module32FirstW@8
+
+			.if ecx == 0
+				PUSH MB_ICONERROR
+				PUSH OFFSET modulBuf
+				PUSH OFFSET modulBuf
+				PUSH DWORD PTR [ebp + 08H]
+				CALL MessageBoxA@16
+			.endif
+
+			.repeat
+				push offset MODULDATA.szModule
+				push 0
+				push LB_ADDSTRING
+				push LISTBOXMODULES 
+
+				call SendMessageA@16
+
+				push offset MODULDATA
+				push mSnapshot
+				call Module32NextW@8
+
+			.until ecx >= 0 ;Why >= ?
+;Module end
+
+		push offset PROCDATA
 		push hSnapshot
-		call Process32NextW@8
-
-		; mov [BUF], PROCDATA.szExeFile
-
-		; .if eax == 1
-		; 	PUSH MB_ICONERROR
-		; 	PUSH OFFSET PROCDATA.szExeFile
-		; 	PUSH OFFSET PROCDATA.szExeFile
-		; 	PUSH DWORD PTR [ebp + 08H] ;ДЕСКРИПТОР ОКНА
-		; 	CALL MessageBoxA@16
-		; .endif
-	
+		call Process32NextW@8	
 	.endw
 
 	push hSnapshot
 	call CloseHandle@4
-	;mov eax, 0
+	
+	push mSnapshot
+	call CloseHandle@4
 	ret 0
-GETPROCESSLIST endp
+updateAllLists endp
 
 ;WNDPROC Function
 ;Location pf parameters on the stack
@@ -297,7 +355,7 @@ WMCREATE:
 	push TCM_GETITEMCOUNT
 	push [TAB]
 
-	call SendMessageW@16
+	call SendMessageA@16
 	;!First tab
 
 	push OFFSET tie
@@ -305,7 +363,7 @@ WMCREATE:
 	push TCM_INSERTITEMW
 	push [TAB]
 
-	call SendMessageW@16
+	call SendMessageA@16
 
 	;Second tab
 	mov tie._mask, TCIF_TEXT
@@ -316,7 +374,7 @@ WMCREATE:
 	push TCM_GETITEMCOUNT
 	push [TAB]
 
-	call SendMessageW@16
+	call SendMessageA@16
 
 	mov tie._mask, TCIF_TEXT
 	mov tie.pszText, OFFSET SECONDTABNAME
@@ -326,7 +384,7 @@ WMCREATE:
 	push TCM_INSERTITEMW
 	push [TAB]
 
-	call SendMessageW@16
+	call SendMessageA@16
 	;!Second tab
 
 	;Create list box (with processes)
@@ -356,10 +414,10 @@ WMCREATE:
 	push 0
 	push ID_LIST_MODUL
 	push [TAB]  				;Is it need?
-	push 150					;Window height
-	push 150					;Window width
-	push 100					;Left upper coordinate
-	push 100					;Right upper coordinate
+	push 300					;Window height
+	push 570					;Window width
+	push 30					;Left upper coordinate
+	push 1200					;Right upper coordinate
 	push WS_CHILD or WS_VISIBLE or LBS_STANDARD or LBS_WANTKEYBOARDINPUT
 	push 0					 	;Class name
 	push OFFSET TITLELISTBOX 	;Window name
@@ -395,7 +453,7 @@ WMCREATE:
 	call ShowWindow@8 			;Show window
 	;!Create button (kill proc)
 
-	call GETPROCESSLIST
+	call updateAllLists
 
 	mov eax, 0
 	jmp FINISH
@@ -409,24 +467,51 @@ IDTABCTRL:
 	push 0
 	push TCM_GETCURFOCUS
 	push [TAB]
-	call SendMessageW@16
+	call SendMessageA@16
 
 	.if eax == 0
+		; call updateAllLists
+
 		push 1
 		push 300
 		push 570
 		push 30
-		push 5
+		push 5	
 		push LISTBOXPROCESSES
 		call MoveWindow@24
+
+		push 1
+		push 300
+		push 570
+		push 30
+		push 1200
+		push LISTBOXMODULES
+		call MoveWindow@24
+
+		push [TAB]
+		call UpdateWindow@4
+
 	.elseif eax == 1
+		; call updateAllLists
+
 		push 1
 		push 300
 		push 570
 		push 30
-		push -650
+		push 5	
+		push LISTBOXMODULES
+		call MoveWindow@24
+
+		push 1
+		push 300
+		push 570
+		push 30
+		push 1200
 		push LISTBOXPROCESSES
 		call MoveWindow@24
+
+		push [TAB]
+		call UpdateWindow@4
 	.endif
 
 DEFWNDPROC:
