@@ -94,6 +94,7 @@ MODULEENTRY32 ends
 
 ;Prototypes of external procedures
 extern MessageBoxA@16:NEAR
+extern MessageBoxW@16:NEAR
 extern CreateWindowExA@48:NEAR
 extern CreateWindowExW@48:NEAR
 extern DefWindowProcA@16:NEAR

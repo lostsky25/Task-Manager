@@ -1,16 +1,16 @@
 .386p
 .model flat, stdcall
 
-
-
 ;Library Linker Directives
 includelib C:\masm32\lib\user32.lib
+includelib C:\masm32\lib\msvcrt.lib
 includelib C:\masm32\lib\kernel32.lib
 includelib \masm32\lib\gdi32.lib
 includelib \masm32\lib\comctl32.lib
 includelib \masm32\lib\masm32.lib
 
 include \masm32\include\gdi32.inc
+include \masm32\include\msvcrt.inc
 include \masm32\include\user32.inc
 include \masm32\include\comctl32.inc
 include \masm32\include\kernel32.inc
@@ -59,7 +59,6 @@ INITCOMMONCONTROL struct
     dwSize 				dd 	?
 INITCOMMONCONTROL ends
 
-
 ;Data segment
 _data segment dword public use32 'data'
 	; BUF byte	1024 DUP(0)
@@ -72,10 +71,10 @@ _data segment dword public use32 'data'
 	HINST				dd		0
 	hSnapshot			dd 		?
 	mSnapshot			dd 		?
-	procTemplateBuf 	db		"%s %d", 0
-	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %s", 0
-	procBuf 			db		1024 dup(?)
-	modulBuf 			db		1024 dup(?)
+	procTemplateBuf 	db		"%S %d",0
+	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %S", 0
+	procBuf 			db 		MAX_PATH dup(?)	
+	modulBuf 			db 		MAX_PATH dup(?)
 	TITLENAME			db		'Task Manager', 0
 	WC_BUTTONW			db		'Button', 0
 	TITLELISTBOX		db		'ListBox', 0
@@ -183,10 +182,7 @@ END_LOOP:
 _ERR:
 	jmp END_LOOP
 
-
-
 updateAllLists proc
-
 	push 0
 	push 0
 	push LB_RESETCONTENT
@@ -231,7 +227,11 @@ updateAllLists proc
 
 	.while eax != 0
 		; .if PROCDATA.th32ProcessID != 0
-		
+		; 	PUSH MB_ICONERROR
+		; 	PUSH 0
+		; 	PUSH 0
+		; 	PUSH DWORD PTR [ebp + 08H]
+		; 	CALL MessageBoxA@16
 		; .endif
 		;??????????????
 		push PROCDATA.th32ProcessID
@@ -240,54 +240,48 @@ updateAllLists proc
 
 		mov mSnapshot, eax
 
-		invoke wsprintf, offset procBuf, offset procTemplateBuf, offset PROCDATA.szExeFile, PROCDATA.th32ProcessID
+		invoke wsprintfA, offset procBuf, offset procTemplateBuf, offset PROCDATA.szExeFile, PROCDATA.th32ProcessID
 
-		push offset PROCDATA.szExeFile
+		push offset procBuf
 		push 0
 		push LB_ADDSTRING
 		push [LISTBOXPROCESSES]
+		call SendMessageA@16
 
-		; PUSH MB_ICONERROR
-		; PUSH OFFSET procBuf
-		; PUSH OFFSET procBuf
-		; PUSH DWORD PTR [ebp + 08H]
-		; CALL MessageBoxA@16
+;Modul begin
+		mov MODULDATA.dwSize, sizeof MODULEENTRY32
 
-			; invoke wsprintf, OFFSET procBuf, OFFSET PROCDATA.szExeFile
+		push offset MODULDATA
+		push mSnapshot
+		call Module32FirstW@8
+
+		.if ecx == 0
+			PUSH MB_ICONERROR
+			PUSH OFFSET modulBuf
+			PUSH OFFSET modulBuf
+			PUSH DWORD PTR [ebp + 08H]
+			CALL MessageBoxA@16
+		.endif
+
+		.repeat
+			invoke wsprintfA, offset modulBuf, offset modulTemplateBuf, MODULDATA.modBaseAddr, MODULDATA.modBaseSize, offset MODULDATA.szModule
+
+
+			push offset modulBuf
+			push 0
+			push LB_ADDSTRING
+			push [LISTBOXMODULES]
 
 			call SendMessageA@16
 
-;Modul begin
-			mov MODULDATA.dwSize, sizeof MODULEENTRY32
-
 			push offset MODULDATA
 			push mSnapshot
-			call Module32FirstW@8
+			call Module32NextW@8
 
-			.if ecx == 0
-				PUSH MB_ICONERROR
-				PUSH OFFSET modulBuf
-				PUSH OFFSET modulBuf
-				PUSH DWORD PTR [ebp + 08H]
-				CALL MessageBoxA@16
-			.endif
-
-			.repeat
-				push offset MODULDATA.szModule
-				push 0
-				push LB_ADDSTRING
-				push LISTBOXMODULES 
-
-				call SendMessageA@16
-
-				push offset MODULDATA
-				push mSnapshot
-				call Module32NextW@8
-
-			.until ecx >= 0 ;Why >= ?
+		.until ecx >= 0 ;Why >= ?
 ;Module end
 
-		push offset PROCDATA
+		push OFFSET PROCDATA
 		push hSnapshot
 		call Process32NextW@8	
 	.endw
