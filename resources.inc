@@ -1,5 +1,3 @@
-;Constants
-
 WM_NOTIFY			    equ 78
 
 ;Closing a window
@@ -7,6 +5,9 @@ WM_DESTROY			    equ 2
 
 ;Create a window
 WM_CREATE			    equ 1
+
+;Command a window
+WM_COMMAND              equ 0111h
 
 ;Error icon
 MB_ICONERROR		    equ 00000010h
@@ -39,12 +40,12 @@ TCM_FIRST			    equ 1300h
 TCM_GETCURFOCUS 	    equ (TCM_FIRST + 47)
 TCM_GETITEMCOUNT        equ (TCM_FIRST + 4)
 TCM_INSERTITEMW         equ (TCM_FIRST + 62)
+
 ;Window propertirs
 CS_VREDRAW			    equ 1h
 CS_HREDRAW			    equ 2h
 CS_GLOBALCLASS 		    equ 4000h
 WS_OVERLAPPEDWINDOW     equ 000CF0000h
-
 STYLE_WINDOW 		    equ CS_HREDRAW+CS_VREDRAW+CS_GLOBALCLASS
 
 ;Programm icon
@@ -66,6 +67,51 @@ TH32CS_SNAPPROCESS      equ 00000002h
 ;For modules
 TH32CS_SNAPMODULE       equ 00000008h
 
+;Message structure
+MSGSTRUCT struct
+	MSHWND				dd	?			;Window id
+	MSMESSAGE			dd 	?			;Message id
+	MSWPARAM			dd	?			;Additional message information
+	MSLPARAM			dd	?			;Additional message information
+	MSTIME				dd	?			;Post time
+	MSPT				dd	?			;Cursor position
+MSGSTRUCT ends
+;!Message structure
+
+;Window structure
+WNDCLASS struct
+	CLSSTYLE			dd	?			;Window style
+	CLWNDPROC			dd	?			;Window procedure pointer
+	CLSCEXTRA			dd	? 			;Additional byte information for this structure
+	CLWNDEXTRA			dd	? 			;Additional byte information for window
+	CLSHISTANCE			dd	?			;Window HINST
+	CLSHICON			dd	?			;Icon id
+	CLSHCURSOR			dd	?			;Cursor id
+	CLBKGROUND			dd	?			;Brush id
+	CLMENUNAME			dd	?			;Name id
+	CLNAME				dd	?			;Specifies a window class name
+WNDCLASS ends
+;!Window structure
+
+;Tabs structure
+TCC_ITEM struct
+	_mask 				dd 	?
+    dwState 			dd 	?
+    dwStateMask 		dd 	?
+    pszText 			dd 	?
+    cchTextMax 			dd 	?
+    iImage 				dd 	?
+TCC_ITEM ends
+;!Tabs structure
+
+;Initcommoncontrol structure
+INITCOMMONCONTROL struct
+    dwICC 				dd 	? 
+    dwSize 				dd 	?
+INITCOMMONCONTROL ends
+;!Initcommoncontrol structure
+
+;Structure for processes
 PROCESSENTRY32 struct
     dwSize              dword ?
     cntUsage            dword ?
@@ -78,7 +124,9 @@ PROCESSENTRY32 struct
     dwFlags             dword ?
     szExeFile           dw MAX_PATH dup(?)
 PROCESSENTRY32 ends
+;!Structure for processes
 
+;Structure for modules
 MODULEENTRY32 struct
     dwSize              dword ?
     th32ModuleID        dword ?
@@ -91,6 +139,7 @@ MODULEENTRY32 struct
     szModule            dw MAX_MODULE_NAME32+1 dup(?)
     szExePath           dw MAX_PATH dup(?)
 MODULEENTRY32 ends
+;!Structure for modules
 
 ;Prototypes of external procedures
 extern MessageBoxA@16:NEAR
@@ -111,7 +160,6 @@ extern TranslateMessage@4:NEAR
 extern UpdateWindow@4:NEAR
 extern CreateToolhelp32Snapshot@8:NEAR
 extern Process32FirstW@8:NEAR
-; extern Process32First@8:NEAR
 extern SendMessageW@16:NEAR
 extern SendMessageA@16:NEAR
 extern InitCommonControlsEx@4:NEAR

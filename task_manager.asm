@@ -17,48 +17,6 @@ include \masm32\include\kernel32.inc
 
 include resources.inc
 
-;Message structure
-MSGSTRUCT struct
-	MSHWND				dd	?			;Window id
-	MSMESSAGE			dd 	?			;Message id
-	MSWPARAM			dd	?			;Additional message information
-	MSLPARAM			dd	?			;Additional message information
-	MSTIME				dd	?			;Post time
-	MSPT				dd	?			;Cursor position
-MSGSTRUCT ends
-;!Message structure
-
-;Window structure
-WNDCLASS struct
-	CLSSTYLE			dd	?			;Window style
-	CLWNDPROC			dd	?			;Window procedure pointer
-	CLSCEXTRA			dd	? 			;Additional byte information for this structure
-	CLWNDEXTRA			dd	? 			;Additional byte information for window
-	CLSHISTANCE			dd	?			;Window HINST
-	CLSHICON			dd	?			;Icon id
-	CLSHCURSOR			dd	?			;Cursor id
-	CLBKGROUND			dd	?			;Brush id
-	CLMENUNAME			dd	?			;Name id
-	CLNAME				dd	?			;Specifies a window class name
-WNDCLASS ends
-;!Window structure
-
-;Tabs structure
-TCC_ITEM struct
-	_mask 				dd 	?
-    dwState 			dd 	?
-    dwStateMask 		dd 	?
-    pszText 			dd 	?
-    cchTextMax 			dd 	?
-    iImage 				dd 	?
-TCC_ITEM ends
-;!Tabs structure
-
-INITCOMMONCONTROL struct
-    dwICC 				dd 	? 
-    dwSize 				dd 	?
-INITCOMMONCONTROL ends
-
 ;Data segment
 _data segment dword public use32 'data'
 	; BUF byte	1024 DUP(0)
@@ -313,6 +271,8 @@ WNDPROC proc
 	je WMCREATE
 	cmp DWORD PTR [ebp + 0CH], WM_NOTIFY
 	je WMNOTIFY
+	cmp DWORD PTR [ebp + 0CH], WM_COMMAND
+	je WMCOMMAND
 
 	jmp DEFWNDPROC
 
@@ -455,6 +415,13 @@ WMCREATE:
 WMNOTIFY:
 	cmp DWORD PTR [ebp + 10H], ID_TABCTRL
 	je IDTABCTRL
+
+WMCOMMAND:
+	cmp DWORD PTR [ebp + 10H], ID_BTN_KILL_PROC
+	je IDBTNKILLPROC
+
+IDBTNKILLPROC:
+	
 	
 IDTABCTRL:
 	push 0
