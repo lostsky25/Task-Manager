@@ -140,7 +140,59 @@ END_LOOP:
 _ERR:
 	jmp END_LOOP
 
-updateAllLists proc
+;For certain process
+updateModuleSnapshot proc
+	push PROCDATA.th32ProcessID
+	push TH32CS_SNAPMODULE
+	call CreateToolhelp32Snapshot@8
+
+	mov mSnapshot, eax
+
+	.if mSnapshot == -1
+		PUSH MB_ICONERROR
+		PUSH OFFSET CAP
+		PUSH OFFSET ERROR_SNAP
+		PUSH DWORD PTR [ebp + 08H]
+		CALL MessageBoxA@16
+	.endif
+
+	ret
+updateModuleSnapshot endp
+
+updateModuleList proc
+	mov MODULDATA.dwSize, sizeof MODULEENTRY32
+
+	push offset MODULDATA
+	push mSnapshot
+	call Module32FirstW@8
+
+	.if ecx == 0
+		PUSH MB_ICONERROR
+		PUSH OFFSET modulBuf
+		PUSH OFFSET modulBuf
+		PUSH DWORD PTR [ebp + 08H]
+		CALL MessageBoxA@16
+	.endif
+
+	.repeat
+		invoke wsprintfA, offset modulBuf, offset modulTemplateBuf, MODULDATA.modBaseAddr, MODULDATA.modBaseSize, offset MODULDATA.szModule
+
+		push offset modulBuf
+		push 0
+		push LB_ADDSTRING
+		push [LISTBOXMODULES]
+
+		call SendMessageA@16
+
+		push offset MODULDATA
+		push mSnapshot
+		call Module32NextW@8
+
+	.until ecx >= 0 ;Why >= ?
+	ret
+updateModuleList endp
+
+updateProcessList proc
 	push 0
 	push 0
 	push LB_RESETCONTENT
@@ -167,31 +219,10 @@ updateAllLists proc
 	push hSnapshot
 	call Process32FirstW@8
 
-	; invoke Process32First, hSnapshot, offset PROCDATA
-
-	push PROCDATA.th32ProcessID
-	push TH32CS_SNAPMODULE
-	call CreateToolhelp32Snapshot@8
-
-	mov mSnapshot, eax
-
-	.if mSnapshot == -1
-		PUSH MB_ICONERROR
-		PUSH OFFSET CAP
-		PUSH OFFSET ERROR_SNAP
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
-	.endif
+	call updateModuleSnapshot
 
 	.while eax != 0
-		; .if PROCDATA.th32ProcessID != 0
-		; 	PUSH MB_ICONERROR
-		; 	PUSH 0
-		; 	PUSH 0
-		; 	PUSH DWORD PTR [ebp + 08H]
-		; 	CALL MessageBoxA@16
-		; .endif
-		;??????????????
+
 		push PROCDATA.th32ProcessID
 		push TH32CS_SNAPMODULE
 		call CreateToolhelp32Snapshot@8
@@ -206,42 +237,11 @@ updateAllLists proc
 		push [LISTBOXPROCESSES]
 		call SendMessageA@16
 
-;Modul begin
-		mov MODULDATA.dwSize, sizeof MODULEENTRY32
-
-		push offset MODULDATA
-		push mSnapshot
-		call Module32FirstW@8
-
-		.if ecx == 0
-			PUSH MB_ICONERROR
-			PUSH OFFSET modulBuf
-			PUSH OFFSET modulBuf
-			PUSH DWORD PTR [ebp + 08H]
-			CALL MessageBoxA@16
-		.endif
-
-		.repeat
-			invoke wsprintfA, offset modulBuf, offset modulTemplateBuf, MODULDATA.modBaseAddr, MODULDATA.modBaseSize, offset MODULDATA.szModule
-
-
-			push offset modulBuf
-			push 0
-			push LB_ADDSTRING
-			push [LISTBOXMODULES]
-
-			call SendMessageA@16
-
-			push offset MODULDATA
-			push mSnapshot
-			call Module32NextW@8
-
-		.until ecx >= 0 ;Why >= ?
-;Module end
+		call updateModuleList
 
 		push OFFSET PROCDATA
 		push hSnapshot
-		call Process32NextW@8	
+		call Process32NextW@8
 	.endw
 
 	push hSnapshot
@@ -250,7 +250,7 @@ updateAllLists proc
 	push mSnapshot
 	call CloseHandle@4
 	ret 0
-updateAllLists endp
+updateProcessList endp
 
 ;WNDPROC Function
 ;Location pf parameters on the stack
@@ -407,7 +407,7 @@ WMCREATE:
 	call ShowWindow@8 			;Show window
 	;!Create button (kill proc)
 
-	call updateAllLists
+	call updateProcessList
 
 	mov eax, 0
 	jmp FINISH
@@ -431,7 +431,7 @@ IDTABCTRL:
 	call SendMessageA@16
 
 	.if eax == 0
-		; call updateAllLists
+		; call updateProcessList
 
 		push 1
 		push 300
@@ -453,7 +453,7 @@ IDTABCTRL:
 		call UpdateWindow@4
 
 	.elseif eax == 1
-		; call updateAllLists
+		; call updateProcessList
 
 		push 1
 		push 300

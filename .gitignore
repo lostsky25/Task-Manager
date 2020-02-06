@@ -1,2 +1,5 @@
 *.exe
 *.obj
+*.exe.id*
+*.exe.nam
+*.exe.til
