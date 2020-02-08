@@ -12,12 +12,19 @@ WM_COMMAND              equ 0111h
 ;Error icon
 MB_ICONERROR		    equ 00000010h
 
+;Active window
+WM_ACTIVATEAPP          equ 001Ch
+
 MAX_PATH			    equ 260
 
 BS_PUSHBUTTON           equ 00000000h
 LB_RESETCONTENT         equ 0184h
 LB_ADDSTRING            equ	0180h
 LB_RESETCONTENT         equ 0184h
+
+PROCESS_TERMINATE       equ 0001h
+LB_GETCURSEL            equ 0188h
+LB_GETTEXT              equ 0189h
 
 ;IDS
 ID_LIST_PROC		    equ 00000020h
@@ -165,6 +172,8 @@ extern SendMessageA@16:NEAR
 extern InitCommonControlsEx@4:NEAR
 extern SendMessageW@16:NEAR
 extern Process32NextW@8:NEAR
+extern OpenProcess@12:NEAR
+extern TerminateProcess@8:NEAR
 extern CloseHandle@4:NEAR
 extern MoveWindow@24:NEAR
 extern UpdateWindow@4:NEAR

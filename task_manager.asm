@@ -29,8 +29,13 @@ _data segment dword public use32 'data'
 	HINST				dd		0
 	hSnapshot			dd 		?
 	mSnapshot			dd 		?
+	hProcess 			dd		?
 	procTemplateBuf 	db		"%S %d",0
 	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %S", 0
+	procInfoTemplate 	db		"%s %s",0
+	procName 			db		?
+	procInfoStr		 	db		?
+	procPidStr			db		?
 	procBuf 			db 		MAX_PATH dup(?)	
 	modulBuf 			db 		MAX_PATH dup(?)
 	TITLENAME			db		'Task Manager', 0
@@ -139,6 +144,42 @@ END_LOOP:
 
 _ERR:
 	jmp END_LOOP
+
+;Process kill
+killProc proc pid:dword
+	push pid
+	push 0
+	push PROCESS_TERMINATE
+	call OpenProcess@12
+
+	mov hProcess, eax
+	; mov pid, 0
+
+	.if hProcess != 0
+		PUSH MB_ICONERROR
+		PUSH OFFSET CAP
+		PUSH OFFSET ERROR_SNAP
+		PUSH DWORD PTR [ebp + 08H]
+		CALL MessageBoxA@16
+	.endif
+
+	push 9
+	push hProcess
+	call TerminateProcess@8
+
+	.if ecx != 0
+		PUSH MB_ICONERROR
+		PUSH OFFSET CAP
+		PUSH OFFSET ERROR_SNAP
+		PUSH DWORD PTR [ebp + 08H]
+		CALL MessageBoxA@16
+	.endif
+
+	push hProcess
+	call CloseHandle@4
+
+	ret
+killProc endp
 
 ;For certain process
 updateModuleSnapshot proc
@@ -273,6 +314,8 @@ WNDPROC proc
 	je WMNOTIFY
 	cmp DWORD PTR [ebp + 0CH], WM_COMMAND
 	je WMCOMMAND
+	cmp DWORD PTR [ebp + 0CH], WM_ACTIVATEAPP
+	je WMACTIVATEAPP
 
 	jmp DEFWNDPROC
 
@@ -420,9 +463,39 @@ WMCOMMAND:
 	cmp DWORD PTR [ebp + 10H], ID_BTN_KILL_PROC
 	je IDBTNKILLPROC
 
-IDBTNKILLPROC:
-	
-	
+WMACTIVATEAPP:
+	call updateProcessList
+
+IDBTNKILLPROC:	
+	push 0
+	push 0
+	push LB_GETCURSEL
+	push [LISTBOXPROCESSES]
+	call SendMessageA@16
+
+	;eax index of selected element
+
+	.if eax != 0FFFFFFFFh
+		push 0
+		push 0
+		push LB_GETCURSEL
+		push [LISTBOXPROCESSES]
+		call SendMessageA@16
+
+		push offset procInfoStr
+		push eax
+		push LB_GETTEXT
+		push [LISTBOXPROCESSES]
+		call SendMessageA@16
+		
+		invoke crt_sscanf, offset procInfoStr, offset procInfoTemplate, offset procName, offset procPidStr
+
+		invoke crt_atoi, offset procPidStr
+		
+		push eax
+		call killProc
+	.endif
+
 IDTABCTRL:
 	push 0
 	push 0
