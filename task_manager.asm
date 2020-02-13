@@ -24,14 +24,28 @@ _data segment dword public use32 'data'
 	LISTBOXPROCESSES	dd 		0
 	LISTBOXMODULES	 	dd 		0
 	BTNKILLPROC			dd 		0
+	BTNPAUSEPROC		dd 		0
+	BTNRESUMEPROC		dd 		0
 	TAB	 				dd 		0
 	DWTEMP				dd 		0
 	HINST				dd		0
 	hSnapshot			dd 		?
 	mSnapshot			dd 		?
+	processHandle		dd		?
+	pfnNtSuspendProcess dd		?
 	hProcess 			dd		?
 	procTemplateBuf 	db		"%S %d",0
+	
+	NtSuspendProcessAStr 	db 		"NtSuspendProcess",0
+	NtResumeProcessAStr 	db 		"NtResumeProcess",0
+	NtModuleNameWStr	dw		"n","t","d","l","l",0
+
 	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %S", 0
+	
+	errorOpenProccess	 db		"OpenProcess",0
+	errorGetModuleHandle db		"GetModuleHandle",0
+	errorGetProcAddress	 db		"GetProcAddress",0
+	
 	procInfoTemplate 	db		"%s %s",0
 	procName 			db		?
 	procInfoStr		 	db		?
@@ -43,9 +57,13 @@ _data segment dword public use32 'data'
 	TITLELISTBOX		db		'ListBox', 0
 	CLASSNAME			db		'CLASS32', 0
 	CAP		    		db		'Message', 0
-	FIRSTTABNAME	    dd		'1', 0
-	SECONDTABNAME	    dd		'2', 0
-	BTNKILLPROCNAME	    dd		"lliK",0
+	NOPROCMSG    		db		'You should chose some process', 0
+	FIRSTTABNAME	    dw		"P","r","o","c","e","s","s","e","s", 0
+	SECONDTABNAME	    dw		"M","o","d","u","l","e","s", 0
+	THIRDTABNAME		dw      "P","e","r","f","o","m","e","n","c","e",0
+	BTNKILLPROCNAME	    db		"Kill",0
+	BTNPAUSEPROCNAME    db      "Pause",0
+	BTNRESUMEPROCNAME   db      "Resume",0
 	WC_TABCONTROLW		db		'SysTabControl32', 0
 	ERROR_SNAP			db		'Errot get snapshot', 0
 	MSG					MSGSTRUCT 		  <?>
@@ -145,8 +163,149 @@ END_LOOP:
 _ERR:
 	jmp END_LOOP
 
+;Process resume
+resumeProc proc pid:dword
+
+	push pid
+	push 0
+	push PROCESS_ALL_ACCESS
+	call OpenProcess@12
+
+	.IF eax == 0
+		PUSH MB_ICONERROR
+		PUSH 0
+		PUSH offset errorOpenProccess
+		PUSH 0
+		CALL MessageBoxA@16	
+	.ENDIF
+
+	mov processHandle, eax
+
+	push offset NtModuleNameWStr
+	call GetModuleHandleW@4
+
+	.IF eax == 0
+		PUSH MB_ICONERROR
+		PUSH 0
+		PUSH offset errorGetModuleHandle
+		PUSH 0
+		CALL MessageBoxA@16	
+	.ENDIF
+
+	push offset NtResumeProcessAStr
+	push eax
+	call GetProcAddress@8
+
+	.IF eax == 0
+		PUSH MB_ICONERROR
+		PUSH 0
+		PUSH offset errorGetProcAddress
+		PUSH 0
+		CALL MessageBoxA@16	
+	.ENDIF
+
+	push processHandle
+	call eax
+
+	push processHandle
+	call CloseHandle@4
+
+	; pfnNtSuspendProcess
+	ret
+resumeProc endp
+
+;Process pause
+pauseProc proc pid:dword
+
+	push pid
+	push 0
+	push PROCESS_ALL_ACCESS
+	call OpenProcess@12
+
+	.IF eax == 0
+		PUSH MB_ICONERROR
+		PUSH 0
+		PUSH offset errorOpenProccess
+		PUSH 0
+		CALL MessageBoxA@16	
+	.ENDIF
+
+	mov processHandle, eax
+
+	push offset NtModuleNameWStr
+	call GetModuleHandleW@4
+
+	.IF eax == 0
+		PUSH MB_ICONERROR
+		PUSH 0
+		PUSH offset errorGetModuleHandle
+		PUSH 0
+		CALL MessageBoxA@16	
+	.ENDIF
+
+	push offset NtSuspendProcessAStr
+	push eax
+	call GetProcAddress@8
+
+	.IF eax == 0
+		PUSH MB_ICONERROR
+		PUSH 0
+		PUSH offset errorGetProcAddress
+		PUSH 0
+		CALL MessageBoxA@16	
+	.ENDIF
+
+	push processHandle
+	call eax
+
+	push processHandle
+	call CloseHandle@4
+
+	; pfnNtSuspendProcess
+	ret
+pauseProc endp
+
+getCurrentProc proc
+	push 0
+	push 0
+	push LB_GETCURSEL
+	push [LISTBOXPROCESSES]
+	call SendMessageA@16
+
+	;eax index of selected element
+
+	.if eax != 0FFFFFFFFh
+		push 0
+		push 0
+		push LB_GETCURSEL
+		push [LISTBOXPROCESSES]
+		call SendMessageA@16
+
+		push offset procInfoStr
+		push eax
+		push LB_GETTEXT
+		push [LISTBOXPROCESSES]
+		call SendMessageA@16
+		
+		invoke crt_sscanf, offset procInfoStr, offset procInfoTemplate, offset procName, offset procPidStr
+
+		invoke crt_atoi, offset procPidStr
+		
+		; push eax
+		; call killProc
+	.else
+		PUSH MB_ICONERROR
+		PUSH OFFSET CAP
+		PUSH OFFSET ERROR_SNAP
+		PUSH DWORD PTR [ebp + 08H]
+		CALL MessageBoxA@16
+	.endif
+	ret
+getCurrentProc endp
+
 ;Process kill
 killProc proc pid:dword
+
 	push pid
 	push 0
 	push PROCESS_TERMINATE
@@ -352,37 +511,53 @@ WMCREATE:
 	push TCM_GETITEMCOUNT
 	push [TAB]
 
-	call SendMessageA@16
-	;!First tab
+	call SendMessageW@16
 
 	push OFFSET tie
 	push 1
 	push TCM_INSERTITEMW
 	push [TAB]
 
-	call SendMessageA@16
+	call SendMessageW@16
+	;!First tab
 
 	;Second tab
 	mov tie._mask, TCIF_TEXT
-	mov tie.pszText, OFFSET FIRSTTABNAME
+	mov tie.pszText, OFFSET SECONDTABNAME
 
 	push 0
 	push 0
 	push TCM_GETITEMCOUNT
 	push [TAB]
 
-	call SendMessageA@16
-
-	mov tie._mask, TCIF_TEXT
-	mov tie.pszText, OFFSET SECONDTABNAME
+	call SendMessageW@16
 
 	push OFFSET tie
 	push 2
 	push TCM_INSERTITEMW
 	push [TAB]
 
-	call SendMessageA@16
+	call SendMessageW@16
 	;!Second tab
+
+	;Thrird tab
+	mov tie._mask, TCIF_TEXT
+	mov tie.pszText, OFFSET THIRDTABNAME
+
+	push 0
+	push 0
+	push TCM_GETITEMCOUNT
+	push [TAB]
+
+	call SendMessageW@16
+
+	push OFFSET tie
+	push 3
+	push TCM_INSERTITEMW
+	push [TAB]
+
+	call SendMessageW@16
+	;!Thrird tab
 
 	;Create list box (with processes)
 	push 0
@@ -434,7 +609,7 @@ WMCREATE:
 	push ID_BTN_KILL_PROC
 	push DWORD PTR [ebp + 08H]
 	push 20						;Window height
-	push 50						;Window width
+	push 60						;Window width
 	push 335					;Left upper coordinate
 	push 520					;Right upper coordinate
 	push WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON
@@ -450,6 +625,50 @@ WMCREATE:
 	call ShowWindow@8 			;Show window
 	;!Create button (kill proc)
 
+	;Create button (pause proc)
+	push 0
+	push 0
+	push ID_BTN_PAUSE_PROC
+	push DWORD PTR [ebp + 08H]
+	push 20						;Window height
+	push 60						;Window width
+	push 335					;Left upper coordinate
+	push 455					;Right upper coordinate
+	push WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON
+	push OFFSET BTNPAUSEPROCNAME ;Name btn
+	push OFFSET WC_BUTTONW 		;Window name
+	push 0					 
+	call CreateWindowExA@48
+
+	mov BTNPAUSEPROC, eax
+
+	push SW_SHOWNORMAL
+	push [BTNPAUSEPROC]
+	call ShowWindow@8 			;Show window
+	;!Create button (pause proc)
+
+	;Create button (pause proc)
+	push 0
+	push 0
+	push ID_BTN_RESUME_PROC
+	push DWORD PTR [ebp + 08H]
+	push 20						;Window height
+	push 60						;Window width
+	push 335					;Left upper coordinate
+	push 390					;Right upper coordinate
+	push WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON
+	push OFFSET BTNRESUMEPROCNAME ;Name btn
+	push OFFSET WC_BUTTONW 		;Window name
+	push 0					 
+	call CreateWindowExA@48
+
+	mov BTNRESUMEPROC, eax
+
+	push SW_SHOWNORMAL
+	push [BTNRESUMEPROC]
+	call ShowWindow@8 			;Show window
+	;!Create button (pause proc)
+
 	call updateProcessList
 
 	mov eax, 0
@@ -462,39 +681,42 @@ WMNOTIFY:
 WMCOMMAND:
 	cmp DWORD PTR [ebp + 10H], ID_BTN_KILL_PROC
 	je IDBTNKILLPROC
+	cmp DWORD PTR [ebp + 10H], ID_BTN_PAUSE_PROC
+	je IDBTNPAUSEPROC
+	cmp DWORD PTR [ebp + 10H], ID_BTN_RESUME_PROC
+	je IDBTNRESUMEPROC
+	
 
 WMACTIVATEAPP:
-	call updateProcessList
+	; call updateProcessList
+	invoke CreateThread, 0, 0, offset updateProcessList, 0, 0, 0
+	jmp FINISH ;It need here?
 
-IDBTNKILLPROC:	
-	push 0
-	push 0
-	push LB_GETCURSEL
-	push [LISTBOXPROCESSES]
-	call SendMessageA@16
+IDBTNRESUMEPROC:
+	call getCurrentProc
+	
+	push eax
+	call resumeProc
 
-	;eax index of selected element
+	jmp FINISH
 
-	.if eax != 0FFFFFFFFh
-		push 0
-		push 0
-		push LB_GETCURSEL
-		push [LISTBOXPROCESSES]
-		call SendMessageA@16
+IDBTNPAUSEPROC:
 
-		push offset procInfoStr
-		push eax
-		push LB_GETTEXT
-		push [LISTBOXPROCESSES]
-		call SendMessageA@16
-		
-		invoke crt_sscanf, offset procInfoStr, offset procInfoTemplate, offset procName, offset procPidStr
+	call getCurrentProc
+	
+	push eax
+	call pauseProc
 
-		invoke crt_atoi, offset procPidStr
-		
-		push eax
-		call killProc
-	.endif
+	jmp FINISH
+
+IDBTNKILLPROC:
+
+	call getCurrentProc
+	
+	push eax
+	call killProc
+	
+	jmp FINISH
 
 IDTABCTRL:
 	push 0
@@ -526,6 +748,27 @@ IDTABCTRL:
 		call UpdateWindow@4
 
 	.elseif eax == 1
+		; call updateProcessList
+
+		push 1
+		push 300
+		push 570
+		push 30
+		push 5	
+		push LISTBOXMODULES
+		call MoveWindow@24
+
+		push 1
+		push 300
+		push 570
+		push 30
+		push 1200
+		push LISTBOXPROCESSES
+		call MoveWindow@24
+
+		push [TAB]
+		call UpdateWindow@4
+	.elseif eax == 2
 		; call updateProcessList
 
 		push 1

@@ -23,14 +23,24 @@ LB_ADDSTRING            equ	0180h
 LB_RESETCONTENT         equ 0184h
 
 PROCESS_TERMINATE       equ 0001h
+PROCESS_QUERY_INFORMATION   equ 0400h
 LB_GETCURSEL            equ 0188h
 LB_GETTEXT              equ 0189h
+
+STANDARD_RIGHTS_REQUIRED equ 000F0000h
+SYNCHRONIZE              equ 00100000h
+PROCESS_ALL_ACCESS      equ (STANDARD_RIGHTS_REQUIRED or SYNCHRONIZE or 0FFFFh)
+
+PROCESS_VM_READ     equ 0010h  
+PROCESS_VM_WRITE    equ 0020h  
 
 ;IDS
 ID_LIST_PROC		    equ 00000020h
 ID_LIST_MODUL 		    equ 00000021h
 ID_BTN_KILL_PROC 	    equ 00000022h
 ID_TABCTRL 			    equ 00000023h
+ID_BTN_PAUSE_PROC 	    equ 00000024h
+ID_BTN_RESUME_PROC 	    equ 00000025h
 
 WS_CHILD 			    equ 40000000h
 WS_VISIBLE              equ 10000000h
@@ -157,6 +167,16 @@ extern DefWindowProcA@16:NEAR
 extern DispatchMessageA@4:NEAR
 extern ExitProcess@4:NEAR
 extern GetMessageA@16:NEAR
+extern OpenProcess@12:NEAR
+
+extern _imp__GetModuleHandleW@4:NEAR
+extern _imp__GetProcAddress@8:NEAR
+; extern _imp__GetModuleHandleA@4:NEAR
+extern GetModuleHandleA@4:NEAR
+extern GetModuleHandleW@4:NEAR
+
+extern CreateThread@24:NEAR
+extern GetProcAddress@8:NEAR
 extern GetModuleHandleA@4:NEAR
 extern LoadCursorA@8:NEAR
 extern LoadIconA@8:NEAR
