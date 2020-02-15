@@ -5,14 +5,14 @@
 includelib C:\masm32\lib\user32.lib
 includelib C:\masm32\lib\msvcrt.lib
 includelib C:\masm32\lib\kernel32.lib
-includelib \masm32\lib\gdi32.lib
+; includelib \masm32\lib\gdi32.lib
 includelib \masm32\lib\comctl32.lib
-includelib \masm32\lib\masm32.lib
+; includelib \masm32\lib\masm32.lib
 
-include \masm32\include\gdi32.inc
+; include \masm32\include\gdi32.inc
 include \masm32\include\msvcrt.inc
 include \masm32\include\user32.inc
-include \masm32\include\comctl32.inc
+; include \masm32\include\comctl32.inc
 include \masm32\include\kernel32.inc
 
 include resources.inc
@@ -36,16 +36,25 @@ _data segment dword public use32 'data'
 	hProcess 			dd		?
 	procTemplateBuf 	db		"%S %d",0
 	
+	;String of errors
+	_errMessage			db		"Error message",0
+	_errProcOpen	 	db		"Error: 101",0
+	_errModulLoad		db		"Error: 102",0
+	_errFuncFromDll		db		"Error: 103",0
+	_errNoneChooseProc	db		"Error: 104",0
+	_errPermisions		db		"Error: 105",0
+	_errProcTerm		db 		"Error: 106",0
+	_errProcList		db		"Error: 107",0
+	_errFirstGetModul	db		"Error: 108",0
+	_errGetModuleHandle db		"Error: 109",0
+	;!String of errors
+
 	NtSuspendProcessAStr 	db 		"NtSuspendProcess",0
 	NtResumeProcessAStr 	db 		"NtResumeProcess",0
 	NtModuleNameWStr	dw		"n","t","d","l","l",0
 
 	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %S", 0
-	
-	errorOpenProccess	 db		"OpenProcess",0
-	errorGetModuleHandle db		"GetModuleHandle",0
-	errorGetProcAddress	 db		"GetProcAddress",0
-	
+
 	procInfoTemplate 	db		"%s %s",0
 	procName 			db		?
 	procInfoStr		 	db		?
@@ -169,48 +178,59 @@ resumeProc proc pid:dword
 	push pid
 	push 0
 	push PROCESS_ALL_ACCESS
-	call OpenProcess@12
+	call OpenProcess@12	
 
-	.IF eax == 0
-		PUSH MB_ICONERROR
-		PUSH 0
-		PUSH offset errorOpenProccess
-		PUSH 0
-		CALL MessageBoxA@16	
-	.ENDIF
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errProcOpen
+		push 0
+		call MessageBoxA@16
+
+		push 101
+		call PostQuitMessage@4
+		mov eax, 0
+	.endif
 
 	mov processHandle, eax
 
 	push offset NtModuleNameWStr
 	call GetModuleHandleW@4
 
-	.IF eax == 0
-		PUSH MB_ICONERROR
-		PUSH 0
-		PUSH offset errorGetModuleHandle
-		PUSH 0
-		CALL MessageBoxA@16	
-	.ENDIF
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errGetModuleHandle
+		push 0
+		call MessageBoxA@16
+		
+		push 109
+		call PostQuitMessage@4
+		mov eax, 0
+	.endif
 
 	push offset NtResumeProcessAStr
 	push eax
 	call GetProcAddress@8
 
-	.IF eax == 0
-		PUSH MB_ICONERROR
-		PUSH 0
-		PUSH offset errorGetProcAddress
-		PUSH 0
-		CALL MessageBoxA@16	
-	.ENDIF
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errFuncFromDll
+		push 0
+		call MessageBoxA@16
+
+		push 103
+		call PostQuitMessage@4
+		mov eax, 0	
+	.endif
 
 	push processHandle
 	call eax
 
 	push processHandle
 	call CloseHandle@4
-
-	; pfnNtSuspendProcess
+	
 	ret
 resumeProc endp
 
@@ -222,38 +242,50 @@ pauseProc proc pid:dword
 	push PROCESS_ALL_ACCESS
 	call OpenProcess@12
 
-	.IF eax == 0
-		PUSH MB_ICONERROR
-		PUSH 0
-		PUSH offset errorOpenProccess
-		PUSH 0
-		CALL MessageBoxA@16	
-	.ENDIF
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errProcOpen
+		push 0
+		call MessageBoxA@16
+
+		push 101
+		call PostQuitMessage@4
+		mov eax, 0
+	.endif
 
 	mov processHandle, eax
 
 	push offset NtModuleNameWStr
 	call GetModuleHandleW@4
 
-	.IF eax == 0
-		PUSH MB_ICONERROR
-		PUSH 0
-		PUSH offset errorGetModuleHandle
-		PUSH 0
-		CALL MessageBoxA@16	
-	.ENDIF
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errGetModuleHandle
+		push 0
+		call MessageBoxA@16
+
+		push 109
+		call PostQuitMessage@4
+		mov eax, 0
+	.endif
 
 	push offset NtSuspendProcessAStr
 	push eax
 	call GetProcAddress@8
 
-	.IF eax == 0
-		PUSH MB_ICONERROR
-		PUSH 0
-		PUSH offset errorGetProcAddress
-		PUSH 0
-		CALL MessageBoxA@16	
-	.ENDIF
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errFuncFromDll
+		push 0
+		call MessageBoxA@16
+
+		push 103
+		call PostQuitMessage@4
+		mov eax, 0
+	.endif
 
 	push processHandle
 	call eax
@@ -261,7 +293,6 @@ pauseProc proc pid:dword
 	push processHandle
 	call CloseHandle@4
 
-	; pfnNtSuspendProcess
 	ret
 pauseProc endp
 
@@ -291,15 +322,18 @@ getCurrentProc proc
 
 		invoke crt_atoi, offset procPidStr
 		
-		; push eax
-		; call killProc
 	.else
-		PUSH MB_ICONERROR
-		PUSH OFFSET CAP
-		PUSH OFFSET ERROR_SNAP
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errNoneChooseProc
+		push 0
+		call MessageBoxA@16
+
+		push 104
+		call PostQuitMessage@4
+		mov eax, 0
 	.endif
+
 	ret
 getCurrentProc endp
 
@@ -312,14 +346,17 @@ killProc proc pid:dword
 	call OpenProcess@12
 
 	mov hProcess, eax
-	; mov pid, 0
 
 	.if hProcess != 0
-		PUSH MB_ICONERROR
-		PUSH OFFSET CAP
-		PUSH OFFSET ERROR_SNAP
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errProcOpen
+		push 0
+		call MessageBoxA@16
+
+		push 101
+		call PostQuitMessage@4
+		mov eax, 0
 	.endif
 
 	push 9
@@ -327,11 +364,15 @@ killProc proc pid:dword
 	call TerminateProcess@8
 
 	.if ecx != 0
-		PUSH MB_ICONERROR
-		PUSH OFFSET CAP
-		PUSH OFFSET ERROR_SNAP
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errProcTerm
+		push 0
+		call MessageBoxA@16
+
+		push 106
+		call PostQuitMessage@4
+		mov eax, 0
 	.endif
 
 	push hProcess
@@ -347,14 +388,15 @@ updateModuleSnapshot proc
 	call CreateToolhelp32Snapshot@8
 
 	mov mSnapshot, eax
-
-	.if mSnapshot == -1
-		PUSH MB_ICONERROR
-		PUSH OFFSET CAP
-		PUSH OFFSET ERROR_SNAP
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
-	.endif
+	
+	;Problem with EAX value
+	; .if mSnapshot == -1
+	; 	push MB_ICONERROR
+	; 	push offset _errMessage
+	; 	push offset _errProcList
+	; 	push 0
+	; 	call MessageBoxA@16
+	; .endif
 
 	ret
 updateModuleSnapshot endp
@@ -367,11 +409,15 @@ updateModuleList proc
 	call Module32FirstW@8
 
 	.if ecx == 0
-		PUSH MB_ICONERROR
-		PUSH OFFSET modulBuf
-		PUSH OFFSET modulBuf
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errFirstGetModul
+		push 0
+		call MessageBoxA@16
+
+		push 108
+		call PostQuitMessage@4
+		mov eax, 0
 	.endif
 
 	.repeat
@@ -388,7 +434,8 @@ updateModuleList proc
 		push mSnapshot
 		call Module32NextW@8
 
-	.until ecx >= 0 ;Why >= ?
+	.until ecx >= 0
+
 	ret
 updateModuleList endp
 
@@ -405,13 +452,14 @@ updateProcessList proc
 
 	mov hSnapshot, eax
 
-	.if hSnapshot == -1
-		PUSH MB_ICONERROR
-		PUSH OFFSET CAP
-		PUSH OFFSET ERROR_SNAP
-		PUSH DWORD PTR [ebp + 08H]
-		CALL MessageBoxA@16
-	.endif
+	;Problem with EAX value
+	; .if hSnapshot == -1
+	; 	push MB_ICONERROR
+	; 	push offset _errMessage
+	; 	push offset _errProcList
+	; 	push 0
+	; 	call MessageBoxA@16
+	; .endif
 
 	mov PROCDATA.dwSize, sizeof PROCESSENTRY32
 
@@ -428,6 +476,15 @@ updateProcessList proc
 		call CreateToolhelp32Snapshot@8
 
 		mov mSnapshot, eax
+		
+		;Problem with EAX value
+		; .if mSnapshot == -1
+		; 	push MB_ICONERROR
+		; 	push offset _errMessage
+		; 	push offset _errProcList
+		; 	push 0
+		; 	call MessageBoxA@16
+		; .endif
 
 		invoke wsprintfA, offset procBuf, offset procTemplateBuf, offset PROCDATA.szExeFile, PROCDATA.th32ProcessID
 
@@ -449,6 +506,7 @@ updateProcessList proc
 	
 	push mSnapshot
 	call CloseHandle@4
+	
 	ret 0
 updateProcessList endp
 
@@ -797,7 +855,7 @@ DEFWNDPROC:
 	push DWORD PTR [ebp + 0CH]
 	push DWORD PTR [ebp + 08H]
 	call DefWindowProcA@16
-	JMP FINISH
+	jmp FINISH
 WMDESTROY:
 	push 0
 	call PostQuitMessage@4
