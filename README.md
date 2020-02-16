@@ -10,3 +10,4 @@
   *	Process can’t be  terminate – error 106
   *	Process list could not be retrieved – error code 107
   *	First module can’t be get (of some process) – error code 108
+  * Can’t retrieves a module handle for the specified module – error code 109
