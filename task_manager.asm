@@ -5,11 +5,11 @@
 includelib C:\masm32\lib\user32.lib
 includelib C:\masm32\lib\msvcrt.lib
 includelib C:\masm32\lib\kernel32.lib
-; includelib \masm32\lib\gdi32.lib
+includelib \masm32\lib\gdi32.lib
 includelib \masm32\lib\comctl32.lib
 ; includelib \masm32\lib\masm32.lib
 
-; include \masm32\include\gdi32.inc
+include \masm32\include\gdi32.inc
 include \masm32\include\msvcrt.inc
 include \masm32\include\user32.inc
 ; include \masm32\include\comctl32.inc
@@ -20,67 +20,79 @@ include resources.inc
 ;Data segment
 _data segment dword public use32 'data'
 	; BUF byte	1024 DUP(0)
-	NEWHWND				dd		0
-	LISTBOXPROCESSES	dd 		0
-	LISTBOXMODULES	 	dd 		0
-	BTNKILLPROC			dd 		0
-	BTNPAUSEPROC		dd 		0
-	BTNRESUMEPROC		dd 		0
-	TAB	 				dd 		0
-	DWTEMP				dd 		0
-	HINST				dd		0
-	hSnapshot			dd 		?
-	mSnapshot			dd 		?
-	processHandle		dd		?
-	pfnNtSuspendProcess dd		?
-	hProcess 			dd		?
-	procTemplateBuf 	db		"%S %d",0
+	NEWHWND					dd					0
+	LISTBOXPROCESSES		dd 					0
+	LISTBOXMODULES	 		dd 					0
+	BTNKILLPROC				dd 					0
+	BTNPAUSEPROC			dd 					0
+	BTNRESUMEPROC			dd 					0
+	TAB	 					dd 					0
+	DWTEMP					dd 					0
+	HINST					dd					0
+	hSnapshot				dd 					?
+	mSnapshot				dd 					?
+	processHandle			dd					?
+	pfnNtSuspendProcess 	dd					?
+	hProcess 				dd					?
+	procTemplateBuf 		db					"%S %d",0
 	
 	;String of errors
-	_errMessage			db		"Error message",0
-	_errProcOpen	 	db		"Error: 101",0
-	_errModulLoad		db		"Error: 102",0
-	_errFuncFromDll		db		"Error: 103",0
-	_errNoneChooseProc	db		"Error: 104",0
-	_errPermisions		db		"Error: 105",0
-	_errProcTerm		db 		"Error: 106",0
-	_errProcList		db		"Error: 107",0
-	_errFirstGetModul	db		"Error: 108",0
-	_errGetModuleHandle db		"Error: 109",0
+	_errMessage				db					"Error message",0
+	_errProcOpen	 		db					"Error: 101",0
+	_errModulLoad			db					"Error: 102",0
+	_errFuncFromDll			db					"Error: 103",0
+	_errNoneChooseProc		db					"Error: 104",0
+	_errPermisions			db					"Error: 105",0
+	_errProcTerm			db 					"Error: 106",0
+	_errProcList			db					"Error: 107",0
+	_errFirstGetModul		db					"Error: 108",0
+	_errGetModuleHandle 	db					"Error: 109",0
+	_errDrawPlot		 	db					"Error: 110",0
 	;!String of errors
 
-	NtSuspendProcessAStr 	db 		"NtSuspendProcess",0
-	NtResumeProcessAStr 	db 		"NtResumeProcess",0
-	NtModuleNameWStr	dw		"n","t","d","l","l",0
+	;Paint
+	delta 					dword				30
+	hdc						dd					?
+	colorFrame				dword				?
+	pen						dword				?
+	; renderState				byte				0
+	plotThreadId			dword				0
+	plotArea				RECT				<30, 60, 480, 180>
+	; ps						PAINTSTRUCT			<?>
+	;!Paint
 
-	modulTemplateBuf 	db		"ba: 0x%08X, bs: 0x%08X, %S", 0
+	NtSuspendProcessAStr 	db 					"NtSuspendProcess",0
+	NtResumeProcessAStr 	db 					"NtResumeProcess",0
+	NtModuleNameWStr		dw					"n","t","d","l","l",0
 
-	procInfoTemplate 	db		"%s %s",0
-	procName 			db		?
-	procInfoStr		 	db		?
-	procPidStr			db		?
-	procBuf 			db 		MAX_PATH dup(?)	
-	modulBuf 			db 		MAX_PATH dup(?)
-	TITLENAME			db		'Task Manager', 0
-	WC_BUTTONW			db		'Button', 0
-	TITLELISTBOX		db		'ListBox', 0
-	CLASSNAME			db		'CLASS32', 0
-	CAP		    		db		'Message', 0
-	NOPROCMSG    		db		'You should chose some process', 0
-	FIRSTTABNAME	    dw		"P","r","o","c","e","s","s","e","s", 0
-	SECONDTABNAME	    dw		"M","o","d","u","l","e","s", 0
-	THIRDTABNAME		dw      "P","e","r","f","o","m","e","n","c","e",0
-	BTNKILLPROCNAME	    db		"Kill",0
-	BTNPAUSEPROCNAME    db      "Pause",0
-	BTNRESUMEPROCNAME   db      "Resume",0
-	WC_TABCONTROLW		db		'SysTabControl32', 0
-	ERROR_SNAP			db		'Errot get snapshot', 0
-	MSG					MSGSTRUCT 		  <?>
-	WC					WNDCLASS		  <?>
-	PROCDATA 			PROCESSENTRY32    <>
-	MODULDATA			MODULEENTRY32	  <>
-	tie     			TCC_ITEM 		  <> 
-	icex    			INITCOMMONCONTROL <>
+	modulTemplateBuf 		db					"ba: 0x%08X, bs: 0x%08X, %S", 0
+
+	procInfoTemplate 		db					"%s %s",0
+	procName 				db					?
+	procInfoStr		 		db					?
+	procPidStr				db					?
+	procBuf 				db 					MAX_PATH dup(?)	
+	modulBuf 				db 					MAX_PATH dup(?)
+	TITLENAME				db					'Task Manager', 0
+	WC_BUTTONW				db					'Button', 0
+	TITLELISTBOX			db					'ListBox', 0
+	CLASSNAME				db					'CLASS32', 0
+	CAP		    			db					'Message', 0
+	NOPROCMSG    			db					'You should chose some process', 0
+	FIRSTTABNAME	    	dw					"P","r","o","c","e","s","s","e","s", 0
+	SECONDTABNAME	    	dw					"M","o","d","u","l","e","s", 0
+	THIRDTABNAME			dw      			"P","e","r","f","o","m","e","n","c","e",0
+	BTNKILLPROCNAME	    	db					"Kill",0
+	BTNPAUSEPROCNAME    	db      			"Pause",0
+	BTNRESUMEPROCNAME   	db      			"Resume",0
+	WC_TABCONTROLW			db					'SysTabControl32', 0
+	ERROR_SNAP				db					'Errot get snapshot', 0
+	MSG						MSGSTRUCT 		  	<?>
+	WC						WNDCLASS		  	<?>
+	PROCDATA 				PROCESSENTRY32    	<>
+	MODULDATA				MODULEENTRY32	  	<>
+	tie     				TCC_ITEM 		  	<> 
+	icex    				INITCOMMONCONTROL 	<>
 _data ends
 ;!Data segment
 
@@ -171,6 +183,188 @@ END_LOOP:
 
 _ERR:
 	jmp END_LOOP
+
+createFrame proc left:dword, top:dword, right:dword, bottom:dword
+	; <30, 60, 480, 180>
+	;Frame
+	;Top
+	push 0
+	push top
+	push left
+	push hdc
+	call MoveToEx@16
+
+	push top
+	push right
+	push hdc
+	call LineTo@12
+	;!Top
+
+	;Right
+	push 0
+	push top
+	push right
+	push hdc
+	call MoveToEx@16
+
+	push bottom
+	push right
+	push hdc
+	call LineTo@12
+	;!Right
+
+	;Bottom
+	push 0
+	push bottom
+	push right
+	push hdc
+	call MoveToEx@16
+
+	push bottom
+	push left
+	push hdc
+	call LineTo@12
+	;!Buttom
+
+	;Left
+	push 0
+	push bottom
+	push left
+	push hdc
+	call MoveToEx@16
+
+	sub top, 1
+
+	push top
+	push left
+	push hdc
+	call LineTo@12
+	;!Left
+	
+	;!Frame
+	ret
+createFrame endp
+
+;Draw plot
+plot proc
+	mov delta, 30
+
+	push [TAB]
+	call GetDC@4 ;Why can't I use BeginPaint?
+
+	.if eax == 0
+		push MB_ICONERROR
+		push offset _errMessage
+		push offset _errDrawPlot
+		push 0
+		call MessageBoxA@16
+
+		push 110
+		call PostQuitMessage@4
+		mov eax, 0
+	.endif
+
+	mov hdc, eax
+
+	push 0
+	push 2
+	push 0
+	call CreatePen@12
+
+	mov pen, eax
+
+	push pen
+	push hdc
+	call SelectObject@8
+
+	; push plotArea.bottom
+	; push plotArea.right
+	; push plotArea.top
+	; push plotArea.left
+	; push hdc
+	; call Rectangle@20
+
+	.while 1
+
+		push 0
+		push 90
+		push delta
+		push hdc
+		call MoveToEx@16
+
+		push 90
+		push delta
+		push hdc
+		call LineTo@12
+
+		push 180
+		push 480
+		push 60
+		push 30
+		call createFrame
+		
+
+		.if delta > 479
+			
+			
+			; push RDW_INVALIDATE
+			; push 0
+			; push offset plotArea
+			; ; push DWORD PTR [ebp + 08H]
+			; push [TAB]
+			; call RedrawWindow@16
+
+			; push RDW_INVALIDATE
+			; push 0
+			; push offset plotArea
+			; push DWORD PTR [ebp + 08H]
+			; ; push [TAB]
+			; call RedrawWindow@16
+
+			push 0
+			push 0
+			push DWORD PTR [ebp + 08H]
+			call InvalidateRect@12
+
+			; push hdc
+			; push DWORD PTR [ebp + 08H]
+			; call ReleaseDC@8
+
+			; push hdc
+			; call DeleteDC@4
+
+			; push [TAB]
+			; call UpdateWindow@4
+			
+				
+			; push DWORD PTR [ebp + 08H]
+			; call UpdateWindow@4
+			
+			mov delta, 30
+		.endif
+		
+		push DWORD PTR [ebp + 08H]
+		call UpdateWindow@4
+
+		
+		push [TAB]
+		call UpdateWindow@4
+		
+		add delta, 1
+
+		push 20
+		call Sleep@4
+	.endw
+
+
+
+	; push offset ps
+	; push [TAB]
+	; call EndPaint@8
+
+	ret 0
+plot endp
+;!Draw plot
 
 ;Process resume
 resumeProc proc pid:dword
@@ -506,7 +700,7 @@ updateProcessList proc
 	
 	push mSnapshot
 	call CloseHandle@4
-	
+
 	ret 0
 updateProcessList endp
 
@@ -529,6 +723,8 @@ WNDPROC proc
 	je WMCREATE
 	cmp DWORD PTR [ebp + 0CH], WM_NOTIFY
 	je WMNOTIFY
+	cmp DWORD PTR [ebp + 0CH], WM_PAINT
+	je WMPAINT
 	cmp DWORD PTR [ebp + 0CH], WM_COMMAND
 	je WMCOMMAND
 	cmp DWORD PTR [ebp + 0CH], WM_ACTIVATEAPP
@@ -732,6 +928,10 @@ WMCREATE:
 	mov eax, 0
 	jmp FINISH
 
+WMPAINT:
+	; invoke CreateThread, 0, 0, offset plot, 0, CREATE_SUSPENDED, 0
+	; mov plotThreadId, eax
+
 WMNOTIFY:
 	cmp DWORD PTR [ebp + 10H], ID_TABCTRL
 	je IDTABCTRL
@@ -744,10 +944,9 @@ WMCOMMAND:
 	cmp DWORD PTR [ebp + 10H], ID_BTN_RESUME_PROC
 	je IDBTNRESUMEPROC
 	
-
 WMACTIVATEAPP:
 	; call updateProcessList
-	invoke CreateThread, 0, 0, offset updateProcessList, 0, 0, 0
+	; invoke CreateThread, 0, 0, offset updateProcessList, 0, 0, 0
 	jmp FINISH ;It need here?
 
 IDBTNRESUMEPROC:
@@ -786,6 +985,15 @@ IDTABCTRL:
 	.if eax == 0
 		; call updateProcessList
 
+		; mov renderState, 0
+
+		.if plotThreadId != 0
+			push 0
+			push plotThreadId
+			call TerminateThread@8
+			mov plotThreadId, eax
+		.endif
+
 		push 1
 		push 300
 		push 570
@@ -807,6 +1015,15 @@ IDTABCTRL:
 
 	.elseif eax == 1
 		; call updateProcessList
+		
+		; mov renderState, 0
+
+		.if plotThreadId != 0
+			push 0
+			push plotThreadId
+			call TerminateThread@8
+			mov plotThreadId, eax
+		.endif
 
 		push 1
 		push 300
@@ -828,12 +1045,23 @@ IDTABCTRL:
 		call UpdateWindow@4
 	.elseif eax == 2
 		; call updateProcessList
+		; mov renderState, 1
+
+		; invoke _beginthreadex, 0, 0, offset plot, 0, 0, 0
+
+		; push plotThreadId
+		; call ResumeThread@4
+
+		.if plotThreadId == 0
+			invoke CreateThread, 0, 0, offset plot, 0, 0, 0
+			mov plotThreadId, eax
+		.endif
 
 		push 1
 		push 300
 		push 570
 		push 30
-		push 5	
+		push 1800
 		push LISTBOXMODULES
 		call MoveWindow@24
 

@@ -9,6 +9,10 @@ WM_CREATE			    equ 1
 ;Command a window
 WM_COMMAND              equ 0111h
 
+;For paint
+WM_PAINT                equ 000Fh
+RDW_INVALIDATE          equ 0001h
+
 ;Error icon
 MB_ICONERROR		    equ 00000010h
 
@@ -22,6 +26,8 @@ LB_RESETCONTENT         equ 0184h
 LB_ADDSTRING            equ	0180h
 LB_RESETCONTENT         equ 0184h
 
+CREATE_SUSPENDED        equ 00000004h
+
 PROCESS_TERMINATE       equ 0001h
 PROCESS_QUERY_INFORMATION   equ 0400h
 LB_GETCURSEL            equ 0188h
@@ -31,8 +37,8 @@ STANDARD_RIGHTS_REQUIRED equ 000F0000h
 SYNCHRONIZE              equ 00100000h
 PROCESS_ALL_ACCESS      equ (STANDARD_RIGHTS_REQUIRED or SYNCHRONIZE or 0FFFFh)
 
-PROCESS_VM_READ     equ 0010h  
-PROCESS_VM_WRITE    equ 0020h  
+PROCESS_VM_READ         equ 0010h  
+PROCESS_VM_WRITE        equ 0020h  
 
 ;IDS
 ID_LIST_PROC		    equ 00000020h
@@ -128,6 +134,24 @@ INITCOMMONCONTROL struct
 INITCOMMONCONTROL ends
 ;!Initcommoncontrol structure
 
+;For paint area
+; PAINTSTRUCT struct
+;     hdc                dword ?
+;     fErase             dword ?
+;     rcPaint            dword ?
+;     fRestore           dword ?
+;     fIncUpdate         dword ?
+;     rgbReserved        dw 32 dup(?)
+; PAINTSTRUCT ends
+
+RECT struct
+    left               dword ?
+    top                dword ?
+    right              dword ?
+    bottom             dword ?
+RECT ends
+;!For paint area
+
 ;Structure for processes
 PROCESSENTRY32 struct
     dwSize              dword ?
@@ -175,6 +199,27 @@ extern _imp__GetProcAddress@8:NEAR
 extern GetModuleHandleA@4:NEAR
 extern GetModuleHandleW@4:NEAR
 
+;Plot
+extern BeginPaint@8:NEAR
+extern CreatePen@12:NEAR
+extern SelectObject@8:NEAR
+extern Rectangle@20:NEAR
+extern GetDC@4:NEAR
+extern MoveToEx@16:NEAR
+extern LineTo@12:NEAR
+extern EndPaint@8:NEAR
+extern RedrawWindow@16:NEAR
+extern InvalidateRect@12:NEAR
+extern ReleaseDC@8:NEAR
+extern DeleteDC@4:NEAR
+extern Sleep@4:NEAR
+;!Plot
+
+; extern _beginthreadex@14:NEAR
+extern SuspendThread@4:NEAR
+extern ResumeThread@4:NEAR
+extern ExitThread@4:NEAR
+extern TerminateThread@8:NEAR
 extern CreateThread@24:NEAR
 extern GetProcAddress@8:NEAR
 extern GetModuleHandleA@4:NEAR
