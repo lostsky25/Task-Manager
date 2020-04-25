@@ -13,23 +13,6 @@ include \masm32\include\kernel32.inc
 
 include resources.inc
 
-public procPidStr
-public procName
-public procInfoTemplate
-public procInfoStr
-public _errMessage
-public _errProcOpen
-public processHandle
-public NtModuleNameWStr
-public _errGetModuleHandle
-public NtResumeProcessAStr
-public _errFuncFromDll
-public NtSuspendProcessAStr
-public LISTBOXPROCESSES
-public _errNoneChooseProc
-public hProcess
-public _errProcTerm
-
 ;Data segment
 _data segment dword public use32 'data'
 	; BUF byte	1024 DUP(0)
