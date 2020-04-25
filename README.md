@@ -1,5 +1,20 @@
 # Task-Manager
-![task-manager-template](https://user-images.githubusercontent.com/57411317/73124176-59647480-3fa9-11ea-961c-f185a560aaef.jpg)
+![sc](https://user-images.githubusercontent.com/57411317/80278190-f5169580-86fc-11ea-9b1c-72351ddddf60.PNG)
+
+The application allows to suspend\resume and kill some process. For that I used NativeAPI functions, such as: 
+* NtSuspendProcess
+* NtResumeProcess
+
+The binary file takes 7.50 КБ. You can build it, using the following commands:
+
+Build:
+ml /coff /c task_manager.asm
+link /SUBSYSTEM:WINDOWS task_manager.obj
+
+Run:
+task_manager.exe
+
+[Download MASM](https://www.masm32.com/)
 
 ## Task-Manager Errors:
   *	Process opening , the access to some process– error code  101
