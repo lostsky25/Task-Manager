@@ -5,17 +5,30 @@
 includelib C:\masm32\lib\user32.lib
 includelib C:\masm32\lib\msvcrt.lib
 includelib C:\masm32\lib\kernel32.lib
-includelib \masm32\lib\gdi32.lib
 includelib \masm32\lib\comctl32.lib
-; includelib \masm32\lib\masm32.lib
 
-include \masm32\include\gdi32.inc
 include \masm32\include\msvcrt.inc
 include \masm32\include\user32.inc
-; include \masm32\include\comctl32.inc
 include \masm32\include\kernel32.inc
 
 include resources.inc
+
+public procPidStr
+public procName
+public procInfoTemplate
+public procInfoStr
+public _errMessage
+public _errProcOpen
+public processHandle
+public NtModuleNameWStr
+public _errGetModuleHandle
+public NtResumeProcessAStr
+public _errFuncFromDll
+public NtSuspendProcessAStr
+public LISTBOXPROCESSES
+public _errNoneChooseProc
+public hProcess
+public _errProcTerm
 
 ;Data segment
 _data segment dword public use32 'data'
@@ -49,17 +62,6 @@ _data segment dword public use32 'data'
 	_errGetModuleHandle 	db					"Error: 109",0
 	_errDrawPlot		 	db					"Error: 110",0
 	;!String of errors
-
-	;Paint
-	delta 					dword				30
-	hdc						dd					?
-	colorFrame				dword				?
-	pen						dword				?
-	; renderState				byte				0
-	plotThreadId			dword				0
-	plotArea				RECT				<30, 60, 480, 180>
-	; ps						PAINTSTRUCT			<?>
-	;!Paint
 
 	NtSuspendProcessAStr 	db 					"NtSuspendProcess",0
 	NtResumeProcessAStr 	db 					"NtResumeProcess",0
@@ -183,188 +185,6 @@ END_LOOP:
 
 _ERR:
 	jmp END_LOOP
-
-createFrame proc left:dword, top:dword, right:dword, bottom:dword
-	; <30, 60, 480, 180>
-	;Frame
-	;Top
-	push 0
-	push top
-	push left
-	push hdc
-	call MoveToEx@16
-
-	push top
-	push right
-	push hdc
-	call LineTo@12
-	;!Top
-
-	;Right
-	push 0
-	push top
-	push right
-	push hdc
-	call MoveToEx@16
-
-	push bottom
-	push right
-	push hdc
-	call LineTo@12
-	;!Right
-
-	;Bottom
-	push 0
-	push bottom
-	push right
-	push hdc
-	call MoveToEx@16
-
-	push bottom
-	push left
-	push hdc
-	call LineTo@12
-	;!Buttom
-
-	;Left
-	push 0
-	push bottom
-	push left
-	push hdc
-	call MoveToEx@16
-
-	sub top, 1
-
-	push top
-	push left
-	push hdc
-	call LineTo@12
-	;!Left
-	
-	;!Frame
-	ret
-createFrame endp
-
-;Draw plot
-plot proc
-	mov delta, 30
-
-	push [TAB]
-	call GetDC@4 ;Why can't I use BeginPaint?
-
-	.if eax == 0
-		push MB_ICONERROR
-		push offset _errMessage
-		push offset _errDrawPlot
-		push 0
-		call MessageBoxA@16
-
-		push 110
-		call PostQuitMessage@4
-		mov eax, 0
-	.endif
-
-	mov hdc, eax
-
-	push 0
-	push 2
-	push 0
-	call CreatePen@12
-
-	mov pen, eax
-
-	push pen
-	push hdc
-	call SelectObject@8
-
-	; push plotArea.bottom
-	; push plotArea.right
-	; push plotArea.top
-	; push plotArea.left
-	; push hdc
-	; call Rectangle@20
-
-	.while 1
-
-		push 0
-		push 90
-		push delta
-		push hdc
-		call MoveToEx@16
-
-		push 90
-		push delta
-		push hdc
-		call LineTo@12
-
-		push 180
-		push 480
-		push 60
-		push 30
-		call createFrame
-		
-
-		.if delta > 479
-			
-			
-			; push RDW_INVALIDATE
-			; push 0
-			; push offset plotArea
-			; ; push DWORD PTR [ebp + 08H]
-			; push [TAB]
-			; call RedrawWindow@16
-
-			; push RDW_INVALIDATE
-			; push 0
-			; push offset plotArea
-			; push DWORD PTR [ebp + 08H]
-			; ; push [TAB]
-			; call RedrawWindow@16
-
-			push 0
-			push 0
-			push DWORD PTR [ebp + 08H]
-			call InvalidateRect@12
-
-			; push hdc
-			; push DWORD PTR [ebp + 08H]
-			; call ReleaseDC@8
-
-			; push hdc
-			; call DeleteDC@4
-
-			; push [TAB]
-			; call UpdateWindow@4
-			
-				
-			; push DWORD PTR [ebp + 08H]
-			; call UpdateWindow@4
-			
-			mov delta, 30
-		.endif
-		
-		push DWORD PTR [ebp + 08H]
-		call UpdateWindow@4
-
-		
-		push [TAB]
-		call UpdateWindow@4
-		
-		add delta, 1
-
-		push 20
-		call Sleep@4
-	.endw
-
-
-
-	; push offset ps
-	; push [TAB]
-	; call EndPaint@8
-
-	ret 0
-plot endp
-;!Draw plot
 
 ;Process resume
 resumeProc proc pid:dword
@@ -582,15 +402,6 @@ updateModuleSnapshot proc
 	call CreateToolhelp32Snapshot@8
 
 	mov mSnapshot, eax
-	
-	;Problem with EAX value
-	; .if mSnapshot == -1
-	; 	push MB_ICONERROR
-	; 	push offset _errMessage
-	; 	push offset _errProcList
-	; 	push 0
-	; 	call MessageBoxA@16
-	; .endif
 
 	ret
 updateModuleSnapshot endp
@@ -646,15 +457,6 @@ updateProcessList proc
 
 	mov hSnapshot, eax
 
-	;Problem with EAX value
-	; .if hSnapshot == -1
-	; 	push MB_ICONERROR
-	; 	push offset _errMessage
-	; 	push offset _errProcList
-	; 	push 0
-	; 	call MessageBoxA@16
-	; .endif
-
 	mov PROCDATA.dwSize, sizeof PROCESSENTRY32
 
 	push offset PROCDATA
@@ -670,15 +472,6 @@ updateProcessList proc
 		call CreateToolhelp32Snapshot@8
 
 		mov mSnapshot, eax
-		
-		;Problem with EAX value
-		; .if mSnapshot == -1
-		; 	push MB_ICONERROR
-		; 	push offset _errMessage
-		; 	push offset _errProcList
-		; 	push 0
-		; 	call MessageBoxA@16
-		; .endif
 
 		invoke wsprintfA, offset procBuf, offset procTemplateBuf, offset PROCDATA.szExeFile, PROCDATA.th32ProcessID
 
@@ -723,8 +516,6 @@ WNDPROC proc
 	je WMCREATE
 	cmp DWORD PTR [ebp + 0CH], WM_NOTIFY
 	je WMNOTIFY
-	cmp DWORD PTR [ebp + 0CH], WM_PAINT
-	je WMPAINT
 	cmp DWORD PTR [ebp + 0CH], WM_COMMAND
 	je WMCOMMAND
 	cmp DWORD PTR [ebp + 0CH], WM_ACTIVATEAPP
@@ -793,25 +584,6 @@ WMCREATE:
 
 	call SendMessageW@16
 	;!Second tab
-
-	;Thrird tab
-	mov tie._mask, TCIF_TEXT
-	mov tie.pszText, OFFSET THIRDTABNAME
-
-	push 0
-	push 0
-	push TCM_GETITEMCOUNT
-	push [TAB]
-
-	call SendMessageW@16
-
-	push OFFSET tie
-	push 3
-	push TCM_INSERTITEMW
-	push [TAB]
-
-	call SendMessageW@16
-	;!Thrird tab
 
 	;Create list box (with processes)
 	push 0
@@ -928,10 +700,6 @@ WMCREATE:
 	mov eax, 0
 	jmp FINISH
 
-WMPAINT:
-	; invoke CreateThread, 0, 0, offset plot, 0, CREATE_SUSPENDED, 0
-	; mov plotThreadId, eax
-
 WMNOTIFY:
 	cmp DWORD PTR [ebp + 10H], ID_TABCTRL
 	je IDTABCTRL
@@ -983,16 +751,6 @@ IDTABCTRL:
 	call SendMessageA@16
 
 	.if eax == 0
-		; call updateProcessList
-
-		; mov renderState, 0
-
-		.if plotThreadId != 0
-			push 0
-			push plotThreadId
-			call TerminateThread@8
-			mov plotThreadId, eax
-		.endif
 
 		push 1
 		push 300
@@ -1014,54 +772,12 @@ IDTABCTRL:
 		call UpdateWindow@4
 
 	.elseif eax == 1
-		; call updateProcessList
-		
-		; mov renderState, 0
-
-		.if plotThreadId != 0
-			push 0
-			push plotThreadId
-			call TerminateThread@8
-			mov plotThreadId, eax
-		.endif
 
 		push 1
 		push 300
 		push 570
 		push 30
 		push 5	
-		push LISTBOXMODULES
-		call MoveWindow@24
-
-		push 1
-		push 300
-		push 570
-		push 30
-		push 1200
-		push LISTBOXPROCESSES
-		call MoveWindow@24
-
-		push [TAB]
-		call UpdateWindow@4
-	.elseif eax == 2
-		; call updateProcessList
-		; mov renderState, 1
-
-		; invoke _beginthreadex, 0, 0, offset plot, 0, 0, 0
-
-		; push plotThreadId
-		; call ResumeThread@4
-
-		.if plotThreadId == 0
-			invoke CreateThread, 0, 0, offset plot, 0, 0, 0
-			mov plotThreadId, eax
-		.endif
-
-		push 1
-		push 300
-		push 570
-		push 30
-		push 1800
 		push LISTBOXMODULES
 		call MoveWindow@24
 

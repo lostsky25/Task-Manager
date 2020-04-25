@@ -192,30 +192,10 @@ extern DispatchMessageA@4:NEAR
 extern ExitProcess@4:NEAR
 extern GetMessageA@16:NEAR
 extern OpenProcess@12:NEAR
-
 extern _imp__GetModuleHandleW@4:NEAR
 extern _imp__GetProcAddress@8:NEAR
-; extern _imp__GetModuleHandleA@4:NEAR
 extern GetModuleHandleA@4:NEAR
 extern GetModuleHandleW@4:NEAR
-
-;Plot
-extern BeginPaint@8:NEAR
-extern CreatePen@12:NEAR
-extern SelectObject@8:NEAR
-extern Rectangle@20:NEAR
-extern GetDC@4:NEAR
-extern MoveToEx@16:NEAR
-extern LineTo@12:NEAR
-extern EndPaint@8:NEAR
-extern RedrawWindow@16:NEAR
-extern InvalidateRect@12:NEAR
-extern ReleaseDC@8:NEAR
-extern DeleteDC@4:NEAR
-extern Sleep@4:NEAR
-;!Plot
-
-; extern _beginthreadex@14:NEAR
 extern SuspendThread@4:NEAR
 extern ResumeThread@4:NEAR
 extern ExitThread@4:NEAR
